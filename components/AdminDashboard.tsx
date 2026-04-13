@@ -384,14 +384,14 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }, 0);
   };
 
-  // Move TranscriptEditor outside or use useMemo to prevent re-renders losing focus
   const renderTranscriptEditor = (fullScreen = false) => {
     const lineCount = transcript.split('\n').length;
     const lineNumbers = Array.from({ length: Math.max(lineCount, 10) }, (_, i) => i + 1);
 
     return (
-      <div className={`flex flex-col h-full ${fullScreen ? 'bg-[#051a12]' : ''}`}>
-        <div className="flex items-center justify-between mb-3 bg-white/5 p-2 rounded-t-xl border-x border-t border-white/10">
+      <div className={`flex flex-col h-full ${fullScreen ? 'bg-[#051a12] p-6' : ''}`}>
+        {/* Editor Toolbar */}
+        <div className="flex items-center justify-between mb-4 bg-white/5 p-2 rounded-xl border border-white/10">
           <div className="flex items-center gap-1">
             <button type="button" onClick={undo} disabled={historyPointer === 0} className="p-2 hover:bg-white/10 rounded text-white/60 disabled:opacity-20 transition-colors" title="Undo (Ctrl+Z)"><Undo2 className="w-4 h-4" /></button>
             <button type="button" onClick={redo} disabled={historyPointer === history.length - 1} className="p-2 hover:bg-white/10 rounded text-white/60 disabled:opacity-20 transition-colors" title="Redo (Ctrl+Y)"><Redo2 className="w-4 h-4" /></button>
@@ -435,38 +435,45 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
         </div>
 
-        <div className={`flex flex-col md:flex-row gap-4 flex-grow min-h-0 ${fullScreen ? 'p-4' : ''}`}>
-          <div className={`flex flex-row bg-black/40 border border-white/10 rounded-b-xl md:rounded-bl-xl md:rounded-br-none overflow-hidden ${showPreview && isSplitView ? 'md:w-1/2' : 'w-full'} h-full`}>
-            {/* Line Numbers */}
-            <div className="bg-white/5 px-2 py-4 text-right select-none border-r border-white/5 min-w-[40px]">
-              {lineNumbers.map(num => (
-                <div key={num} className="text-[10px] font-mono text-white/20 leading-6 h-6">
-                  {num}
-                </div>
-              ))}
+        <div className={`grid grid-cols-1 ${showPreview && isSplitView ? 'lg:grid-cols-2' : 'grid-cols-1'} gap-6 flex-grow min-h-0`}>
+          {/* Editor Panel */}
+          <div className="flex flex-col">
+            <h4 className="text-sm font-bold text-[#D4AF37] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Code className="w-4 h-4" /> Manual HTML Editor
+            </h4>
+            <div className="flex flex-row bg-black/40 border border-white/10 rounded-xl overflow-hidden h-full focus-within:border-[#D4AF37] focus-within:ring-1 focus-within:ring-[#D4AF37] transition-all">
+              {/* Line Numbers */}
+              <div className="bg-white/5 px-2 py-5 text-right select-none border-r border-white/5 min-w-[40px]">
+                {lineNumbers.map(num => (
+                  <div key={num} className="text-[10px] font-mono text-white/20 leading-6 h-6">
+                    {num}
+                  </div>
+                ))}
+              </div>
+              
+              <textarea 
+                id="transcript-textarea"
+                value={transcript}
+                onChange={(e) => updateTranscriptWithHistory(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+                  if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
+                }}
+                className="w-full bg-transparent p-5 text-teal-50 focus:outline-none font-mono text-sm leading-6 resize-y custom-scrollbar min-h-[400px]"
+                placeholder="<p>Paste your HTML transcript here...</p>"
+                spellCheck={false}
+              />
             </div>
-            
-            <textarea 
-              id="transcript-textarea"
-              value={transcript}
-              onChange={(e) => updateTranscriptWithHistory(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
-                if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
-              }}
-              className={`w-full bg-transparent px-4 py-4 text-white focus:outline-none font-mono text-sm leading-6 resize-none custom-scrollbar ${fullScreen ? 'flex-grow' : 'min-h-[400px]'}`}
-              placeholder="<p>Paste your HTML transcript here...</p>"
-              spellCheck={false}
-            />
           </div>
 
+          {/* Preview Panel */}
           {showPreview && isSplitView && (
-            <div className="md:w-1/2 h-full flex flex-col">
-              <div className="text-[10px] font-bold text-white/40 uppercase mb-2 ml-1 flex items-center gap-2">
-                <Eye className="w-3 h-3" /> Live Preview
-              </div>
+            <div className="flex flex-col">
+              <h4 className="text-sm font-bold text-[#D4AF37] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Eye className="w-4 h-4" /> Live Preview
+              </h4>
               <div 
-                className={`w-full bg-white border border-[#D4AF37]/20 rounded-xl p-8 text-slate-900 prose prose-sm max-w-none overflow-y-auto custom-scrollbar shadow-inner ${fullScreen ? 'flex-grow' : 'max-h-[500px]'}`}
+                className="bg-[#051a12] text-white p-6 rounded-xl glass-card shadow-2xl min-h-[400px] max-h-[600px] overflow-y-auto border border-[#D4AF37]/30 custom-scrollbar prose prose-invert prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(transcript, { FORCE_BODY: true }) }}
               />
             </div>
@@ -475,14 +482,15 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         {showPreview && !isSplitView && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 overflow-hidden"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6"
           >
-            <div className="text-[10px] font-bold text-white/40 uppercase mb-2 ml-1">Full Width Preview</div>
+            <h4 className="text-sm font-bold text-[#D4AF37] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Eye className="w-4 h-4" /> Full Width Preview
+            </h4>
             <div 
-              className="w-full bg-white border border-[#D4AF37]/30 rounded-xl p-8 text-slate-900 prose prose-sm max-w-none max-h-[500px] overflow-y-auto custom-scrollbar"
+              className="bg-[#051a12] text-white p-8 rounded-xl glass-card shadow-2xl min-h-[400px] max-h-[600px] overflow-y-auto border border-[#D4AF37]/30 custom-scrollbar prose prose-invert prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(transcript, { FORCE_BODY: true }) }}
             />
           </motion.div>

@@ -69,24 +69,14 @@ async function handleAudioRequest(request) {
   const cache = await caches.open(MEDIA_CACHE_NAME);
   const cachedResponse = await cache.match(request);
 
+  // If we have it in cache (e.g. from an explicit download), serve it with range support
   if (cachedResponse) {
     return handleRangeRequest(request, cachedResponse);
   }
 
-  // If not in cache, fetch the full file to enable offline playback
-  const fullRequest = new Request(request.url, {
-    method: 'GET',
-    headers: new Headers(request.headers)
-  });
-  fullRequest.headers.delete('Range');
-
+  // If not in cache, just fetch from network without automatic caching
   try {
-    const networkResponse = await fetch(fullRequest);
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
-      return handleRangeRequest(request, networkResponse);
-    }
-    return networkResponse;
+    return await fetch(request);
   } catch (error) {
     return new Response('Offline', { status: 503 });
   }

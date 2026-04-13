@@ -68,41 +68,36 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
     setIsSavingToDevice(true);
     try {
       const title = guide.title || `Day_${guide.id}`;
-      const downloads: Promise<void>[] = [];
 
       // 1. MP3 Download
-      const downloadMp3 = async () => {
-        const blob = await downloadAudio(guide);
-        if (!blob) throw new Error('Audio download failed');
-        
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${title}.mp3`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      };
-      downloads.push(downloadMp3());
+      const blob = await downloadAudio(guide);
+      if (!blob) throw new Error('Audio download failed');
+      
+      const audioUrl = window.URL.createObjectURL(blob);
+      const audioLink = document.createElement('a');
+      audioLink.href = audioUrl;
+      audioLink.download = `${title}.mp3`;
+      document.body.appendChild(audioLink);
+      audioLink.click();
+      document.body.removeChild(audioLink);
+      window.URL.revokeObjectURL(audioUrl);
 
-      // 2. Transcript Download (as HTML)
+      // 2. Delay to prevent browser blocking sequential downloads
       if (guide.transcript) {
-        const downloadTranscript = async () => {
-          const blob = new Blob([guide.transcript!], { type: 'text/html;charset=utf-8' });
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${title}.html`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-        };
-        downloads.push(downloadTranscript());
+        await new Promise(r => setTimeout(r, 500));
+
+        // 3. Transcript Download (as HTML)
+        const transcriptBlob = new Blob([guide.transcript], { type: 'text/html;charset=utf-8' });
+        const transcriptUrl = window.URL.createObjectURL(transcriptBlob);
+        const transcriptLink = document.createElement('a');
+        transcriptLink.href = transcriptUrl;
+        transcriptLink.download = `${title}.html`;
+        document.body.appendChild(transcriptLink);
+        transcriptLink.click();
+        document.body.removeChild(transcriptLink);
+        window.URL.revokeObjectURL(transcriptUrl);
       }
 
-      await Promise.all(downloads);
       onClose();
     } catch (error) {
       console.error('Save to device failed:', error);
