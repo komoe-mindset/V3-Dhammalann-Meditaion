@@ -391,8 +391,8 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return (
       <div className={`flex flex-col h-full ${fullScreen ? 'bg-[#051a12] p-6' : ''}`}>
         {/* Editor Toolbar */}
-        <div className="flex items-center justify-between mb-4 bg-white/5 p-2 rounded-xl border border-white/10">
-          <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 bg-white/5 p-2 rounded-xl border border-white/10">
+          <div className="flex flex-wrap items-center gap-1">
             <button type="button" onClick={undo} disabled={historyPointer === 0} className="p-2 hover:bg-white/10 rounded text-white/60 disabled:opacity-20 transition-colors" title="Undo (Ctrl+Z)"><Undo2 className="w-4 h-4" /></button>
             <button type="button" onClick={redo} disabled={historyPointer === history.length - 1} className="p-2 hover:bg-white/10 rounded text-white/60 disabled:opacity-20 transition-colors" title="Redo (Ctrl+Y)"><Redo2 className="w-4 h-4" /></button>
             <div className="w-px h-4 bg-white/10 mx-1" />
@@ -473,7 +473,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <Eye className="w-4 h-4" /> Live Preview
               </h4>
               <div 
-                className="bg-[#051a12] text-white p-6 rounded-xl glass-card shadow-2xl min-h-[400px] max-h-[600px] overflow-y-auto border border-[#D4AF37]/30 custom-scrollbar prose prose-invert prose-sm max-w-none"
+                className="w-full min-h-[400px] p-6 rounded-xl border border-[#D4AF37]/30 bg-[#051a12] text-white overflow-y-auto [&_*]:!bg-transparent prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(transcript, { FORCE_BODY: true }) }}
               />
             </div>
@@ -490,7 +490,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <Eye className="w-4 h-4" /> Full Width Preview
             </h4>
             <div 
-              className="bg-[#051a12] text-white p-8 rounded-xl glass-card shadow-2xl min-h-[400px] max-h-[600px] overflow-y-auto border border-[#D4AF37]/30 custom-scrollbar prose prose-invert prose-sm max-w-none"
+              className="w-full min-h-[400px] p-6 rounded-xl border border-[#D4AF37]/30 bg-[#051a12] text-white overflow-y-auto [&_*]:!bg-transparent prose prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(transcript, { FORCE_BODY: true }) }}
             />
           </motion.div>
