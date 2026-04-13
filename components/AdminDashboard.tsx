@@ -459,7 +459,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
                   if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
                 }}
-                className="w-full bg-transparent p-5 text-teal-50 focus:outline-none font-mono text-sm leading-6 resize-y custom-scrollbar min-h-[400px]"
+                className="w-full bg-transparent p-5 text-teal-50 focus:outline-none font-mono text-sm leading-6 resize-y custom-scrollbar h-[500px]"
                 placeholder="<p>Paste your HTML transcript here...</p>"
                 spellCheck={false}
               />
@@ -473,7 +473,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <Eye className="w-4 h-4" /> Live Preview
               </h4>
               <div 
-                className="w-full min-h-[400px] p-6 rounded-xl border border-[#D4AF37]/30 bg-[#051a12] text-white overflow-y-auto [&_*]:!bg-transparent prose prose-invert max-w-none"
+                className="w-full h-[500px] p-6 rounded-xl border border-[#D4AF37]/30 bg-[#051a12] text-white overflow-y-auto [&_*]:!bg-transparent [&_h1]:!text-[#D4AF37] [&_h2]:!text-[#D4AF37] [&_h3]:!text-[#D4AF37] [&_h4]:!text-[#D4AF37] [&_strong]:!text-[#D4AF37] [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(transcript, { FORCE_BODY: true }) }}
               />
             </div>
@@ -490,7 +490,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <Eye className="w-4 h-4" /> Full Width Preview
             </h4>
             <div 
-              className="w-full min-h-[400px] p-6 rounded-xl border border-[#D4AF37]/30 bg-[#051a12] text-white overflow-y-auto [&_*]:!bg-transparent prose prose-invert max-w-none"
+              className="w-full h-[500px] p-6 rounded-xl border border-[#D4AF37]/30 bg-[#051a12] text-white overflow-y-auto [&_*]:!bg-transparent [&_h1]:!text-[#D4AF37] [&_h2]:!text-[#D4AF37] [&_h3]:!text-[#D4AF37] [&_h4]:!text-[#D4AF37] [&_strong]:!text-[#D4AF37] [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white prose prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(transcript, { FORCE_BODY: true }) }}
             />
           </motion.div>
