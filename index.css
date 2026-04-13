@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+    --forest-green-light: #0d4d3a;
+    --forest-green-dark: #041a13;
+    --deep-teal: #006D77;
+    --soft-gold: #D4AF37; /* Polished Gold Leaf */
+    --gold-leaf: #FCF6BA;
+    --gold-gradient: linear-gradient(135deg, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans Myanmar', sans-serif;
+    background: radial-gradient(circle at center, var(--forest-green-light) 0%, var(--forest-green-dark) 85%);
+    background-attachment: fixed;
+    color: #F7FAFC;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+    font-display: swap;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Subtle Silk Texture Overlay */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("https://www.transparenttextures.com/patterns/silk.png");
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+}
+
+h1, h2, h3, .wisdom-text {
+    font-family: 'Playfair Display', 'Noto Sans Myanmar', serif;
+    background: var(--gold-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    filter: drop-shadow(0 0 10px rgba(252, 246, 186, 0.3));
+}
+
+.lang-my { line-height: 2.2; }
+.lang-my h1, .lang-my h2, .lang-my h3 { line-height: 1.8; }
+
+.glass-card {
+    background: rgba(4, 26, 19, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+}
+
+.gold-border {
+    border: 1px solid transparent;
+    background-image: linear-gradient(rgba(10, 46, 31, 0.8), rgba(10, 46, 31, 0.8)), var(--gold-gradient);
+    background-origin: border-box;
+    background-clip: content-box, border-box;
+}
+
+.gold-text {
+    background: var(--gold-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+}
+
+
+.active-scale:active {
+    transform: scale(0.96);
+    transition: transform 0.1s ease;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 109, 119, 0.2); border-radius: 10px; }
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.fade-content {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.syncing-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+}
+
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--deep-teal);
+    color: white;
+    padding: 8px;
+    z-index: 100;
+    transition: top 0.2s;
+}
+.skip-link:focus { top: 0; }
