@@ -32,7 +32,7 @@ const ShareModal = lazy(() => import('./components/ShareModal'));
  */
 const STORAGE_KEY = 'mindful_project_v3';
 const LANG_KEY = 'mindfulness_lang_pref';
-const PATRON_WEBSITE_URL = "https://drsoelwin.mindset-it.online/";
+const PATRON_WEBSITE_URL = "https://drsoelwin.dhammalann.org/";
 const AUDIO_SUMMARY_URL = "https://dhamma-mindset.pages.dev/";
 const NOTEBOOK_LM_URL = "https://notebooklm.google.com/notebook/5c693072-7f7a-40a2-84da-8060c1213a8d";
 
@@ -268,13 +268,13 @@ const AppContent: React.FC = () => {
     mp3File: lang === 'my' ? "MP3 အသံဖိုင်" : "MP3 Audio File",
     htmlFile: lang === 'my' ? "စာသားဖိုင် (HTML)" : "HTML Transcript",
     bothFiles: lang === 'my' ? "ဖိုင်နှစ်မျိုးလုံး" : "Both Files",
-    mp3Desc: lang === 'my' ? "အသံဖိုင်သာ ဒေါင်းလုဒ်လုပ်ရန်" : "Download only the audio",
-    htmlDesc: lang === 'my' ? "စာသားဖိုင်သာ ဒေါင်းလုဒ်လုပ်ရန်" : "Download the text version",
-    bothDesc: lang === 'my' ? "အသံဖိုင်နှင့် စာသားဖိုင် နှစ်မျိုးလုံး" : "MP3 + HTML Transcript",
-    saveToDevice: lang === 'my' ? "စက်ထဲသို့ သိမ်းဆည်းရန်" : "Save to Device",
-    readAudioBook: lang === 'my' ? "📖 စာအုပ်ဖတ်ရန်" : "📖 Read Audio Book",
-    availableOffline: lang === 'my' ? "အော့ဖ်လိုင်း နာယူနိုင်ပါပြီ" : "Available Offline",
-    downloadForOffline: lang === 'my' ? "အော့ဖ်လိုင်း နာယူရန် ဒေါင်းလုဒ်လုပ်ရန်" : "Download for Offline",
+    mp3Desc: lang === 'my' ? "အသံဖိုင်သာ" : "Download only the audio",
+    htmlDesc: lang === 'my' ? "စာသားဖိုင်သာ" : "Download the text version",
+    bothDesc: lang === 'my' ? "အသံနှင့် စာသား" : "MP3 + HTML Transcript",
+    saveToDevice: lang === 'my' ? "စက်ထဲသိမ်းရန်" : "Save to Device",
+    readAudioBook: lang === 'my' ? "စာအုပ်ဖတ်ရန်" : "Read Audio Book",
+    availableOffline: lang === 'my' ? "အော့ဖ်လိုင်း နာယူရန်" : "Available Offline",
+    downloadForOffline: lang === 'my' ? "အော့ဖ်လိုင်း နာယူရန်" : "Download for Offline",
     audioUnavailable: lang === 'my' ? "တရားတော် မရရှိနိုင်သေးပါ" : "Audio Unavailable"
   }), [lang]);
 

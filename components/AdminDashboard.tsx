@@ -55,6 +55,25 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Custom Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'info'
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'warning') => {
+    setConfirmModal({ isOpen: true, title, message, onConfirm, type });
+  };
+
   // Form states
   const [dayNumber, setDayNumber] = useState('');
   const [title, setTitle] = useState('');
@@ -109,6 +128,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [records, setRecords] = useState<MeditationRecord[]>([]);
   const [fetchingRecords, setFetchingRecords] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
   const recordsMap = useMemo(() => {
     const map = new Map<number, MeditationRecord>();
@@ -198,22 +218,27 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this meditation?')) return;
-    
-    setLoading(true);
-    setError(null);
-    try {
-      await pb.collection('meditations').delete(id);
-      setSuccess('Meditation deleted successfully.');
-      fetchRecords();
-      if (editingRecord?.id === id) {
-        cancelEdit();
-      }
-    } catch (err: any) {
-      setError(err.message || 'Delete failed.');
-    } finally {
-      setLoading(false);
-    }
+    showConfirm(
+      'Delete Meditation',
+      'Are you sure you want to delete this meditation? This action cannot be undone.',
+      async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          await pb.collection('meditations').delete(id);
+          setSuccess('Meditation deleted successfully.');
+          fetchRecords();
+          if (editingRecord?.id === id) {
+            cancelEdit();
+          }
+        } catch (err: any) {
+          setError(err.message || 'Delete failed.');
+        } finally {
+          setLoading(false);
+        }
+      },
+      'danger'
+    );
   };
 
   const cancelEdit = () => {
@@ -256,9 +281,12 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const clearBatch = () => {
-    if (window.confirm('Clear all files from the batch?')) {
-      setBatchFiles([]);
-    }
+    showConfirm(
+      'Clear Batch',
+      'Are you sure you want to clear all files from the batch?',
+      () => setBatchFiles([]),
+      'warning'
+    );
   };
 
   const updateBatchField = (index: number, field: 'title' | 'day_number', value: string) => {
@@ -289,6 +317,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     const totalFiles = batchFiles.length;
     let successCount = 0;
+    setUploadProgress({ current: 0, total: totalFiles });
 
     try {
       // Create a copy of the files to upload to iterate over
@@ -303,6 +332,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         await pb.collection('meditations').create(formData);
         
         successCount++;
+        setUploadProgress({ current: successCount, total: totalFiles });
         // Remove the successfully uploaded file from state immediately
         setBatchFiles(prev => prev.filter(b => b !== item));
       }
@@ -314,6 +344,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       fetchRecords(); // Refresh to see what succeeded
     } finally {
       setLoading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -401,7 +432,14 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <button type="button" onClick={() => insertTag('h3')} className="p-2 hover:bg-white/10 rounded text-white/60 hover:text-[#D4AF37] transition-colors" title="Heading"><Heading3 className="w-4 h-4" /></button>
             <button type="button" onClick={() => insertTag('br')} className="p-2 hover:bg-white/10 rounded text-white/60 hover:text-[#D4AF37] transition-colors" title="Line Break"><CornerDownLeft className="w-4 h-4" /></button>
             <div className="w-px h-4 bg-white/10 mx-1" />
-            <button type="button" onClick={() => { if(confirm('Clear all code?')) updateTranscriptWithHistory(''); }} className="p-2 hover:bg-red-500/20 rounded text-white/40 hover:text-red-400 transition-colors" title="Clear All"><RotateCcw className="w-4 h-4" /></button>
+            <button type="button" onClick={() => { 
+              showConfirm(
+                'Clear Transcript',
+                'Are you sure you want to clear all code in the editor?',
+                () => updateTranscriptWithHistory(''),
+                'danger'
+              );
+            }} className="p-2 hover:bg-red-500/20 rounded text-white/40 hover:text-red-400 transition-colors" title="Clear All"><RotateCcw className="w-4 h-4" /></button>
           </div>
           <div className="flex items-center gap-2">
             <button 
@@ -823,38 +861,39 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </div>
 
                     {batchFiles.length > 0 && (
-                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                         {batchFiles.map((item, index) => (
-                          <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 relative group">
-                            <button 
-                              onClick={() => removeBatchFile(index)}
-                              className="absolute top-2 right-2 p-1 text-white/20 hover:text-red-400 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                            <div className="flex items-center gap-2 text-xs font-bold text-[#D4AF37] truncate pr-6">
-                              <Music className="w-3 h-3" /> {item.file.name}
+                          <div key={index} className="bg-black/40 border border-white/10 rounded-xl p-3 flex items-center gap-3 relative group hover:border-[#D4AF37]/30 transition-colors">
+                            <div className="w-8 h-8 bg-[#D4AF37]/10 rounded-lg flex items-center justify-center shrink-0">
+                              <Music className="w-4 h-4 text-[#D4AF37]" />
                             </div>
-                            <div className="grid grid-cols-4 gap-3">
-                              <div className="col-span-1">
+                            <div className="flex-grow min-w-0 grid grid-cols-12 gap-2">
+                              <div className="col-span-3">
                                 <input 
                                   type="number"
                                   value={item.day_number}
                                   onChange={(e) => updateBatchField(index, 'day_number', e.target.value)}
                                   placeholder="Day"
-                                  className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]/50"
+                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-[#D4AF37]/50"
                                 />
                               </div>
-                              <div className="col-span-3">
+                              <div className="col-span-9">
                                 <input 
                                   type="text"
                                   value={item.title}
                                   onChange={(e) => updateBatchField(index, 'title', e.target.value)}
                                   placeholder="Title"
-                                  className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]/50"
+                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]/50"
                                 />
                               </div>
                             </div>
+                            <button 
+                              onClick={() => removeBatchFile(index)}
+                              className="p-1.5 text-white/20 hover:text-red-400 transition-colors"
+                              title="Remove from batch"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -878,16 +917,26 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       <button 
                         onClick={handleBatchUpload}
                         disabled={loading}
-                        className="w-full bg-[#B8860B] hover:bg-[#9a700a] text-white font-bold py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full bg-[#B8860B] hover:bg-[#9a700a] text-white font-bold py-4 rounded-xl transition-all active:scale-95 flex flex-col items-center justify-center gap-2 disabled:opacity-50 overflow-hidden relative"
                       >
-                        {loading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                            Uploading {batchFiles.length} files...
-                          </>
-                        ) : (
-                          `Upload All (${batchFiles.length} files)`
+                        {loading && uploadProgress && (
+                          <motion.div 
+                            className="absolute inset-0 bg-white/10 origin-left"
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: uploadProgress.current / uploadProgress.total }}
+                            transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+                          />
                         )}
+                        <div className="relative z-10 flex items-center gap-2">
+                          {loading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                              <span>Uploading {uploadProgress?.current} of {uploadProgress?.total}</span>
+                            </>
+                          ) : (
+                            `Upload All (${batchFiles.length} files)`
+                          )}
+                        </div>
                       </button>
                     )}
                   </div>
@@ -904,9 +953,26 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/10"
             >
               <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <Grid3X3 className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
-                  <h2 id="tracker-title" className="text-xl font-bold text-white">365-Day Tracker</h2>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <Grid3X3 className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
+                    <h2 id="tracker-title" className="text-xl font-bold text-white">365-Day Tracker</h2>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-green-500/40 border border-green-500/50"></div>
+                      <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Uploaded</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-red-500/10 border border-red-500/20"></div>
+                      <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Missing</span>
+                    </div>
+                    <div className="h-3 w-px bg-white/10 mx-1"></div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-[#D4AF37] font-mono font-bold">{records.length}</span>
+                      <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">/ 365 Days</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl" role="tablist" aria-label="View mode selection">
                   <button 
@@ -944,10 +1010,10 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       <button
                         key={day}
                         onClick={() => handleDayClick(day, exists)}
-                        className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                        className={`aspect-square rounded-lg flex items-center justify-center text-[10px] font-mono transition-all ${
                           exists 
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30' 
-                            : 'bg-red-500/10 text-red-400/50 border border-red-500/20 hover:bg-red-500/20 hover:text-red-400 cursor-pointer active:scale-90'
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/40 hover:scale-105 shadow-lg shadow-green-500/5' 
+                            : 'bg-red-500/10 text-red-400/30 border border-red-500/20 hover:bg-red-500/20 hover:text-red-400 cursor-pointer active:scale-90'
                         }`}
                         title={exists ? `Day ${day}: ${record.title} (Click to Edit)` : `Day ${day}: Missing`}
                         aria-label={`Day ${day}: ${exists ? record.title : 'Missing'}`}
@@ -1050,6 +1116,58 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <div className="flex-grow overflow-hidden">
                 {renderTranscriptEditor(true)}
               </div>
+            </motion.div>
+          )}
+
+          {confirmModal.isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[600] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+              onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="glass-card w-full max-w-sm p-8 rounded-[2rem] border-2 border-white/10 bg-[#051a12] shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${
+                    confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-500' : 
+                    confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-500' : 
+                    'bg-blue-500/20 text-blue-500'
+                  }`}>
+                    <AlertCircle className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+                  <p className="text-white/60 text-sm mb-8">{confirmModal.message}</p>
+                  
+                  <div className="flex flex-col w-full gap-3">
+                    <button
+                      onClick={() => {
+                        confirmModal.onConfirm();
+                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                      }}
+                      className={`w-full py-4 rounded-xl font-bold transition-all active:scale-95 ${
+                        confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : 
+                        confirmModal.type === 'warning' ? 'bg-[#B8860B] hover:bg-[#9a700a] text-white' : 
+                        'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                      className="w-full py-4 text-white/40 font-bold hover:text-white transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

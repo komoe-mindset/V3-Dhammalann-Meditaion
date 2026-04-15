@@ -76,9 +76,13 @@ const JumpToDay: React.FC<JumpToDayProps> = ({ isOpen, onClose, lang, t }) => {
               </p>
             </div>
 
-            <form onSubmit={handleJump} className="space-y-4">
+            <form id="jump-to-day-form" onSubmit={handleJump} className="space-y-4">
               <div className="relative">
+                <label htmlFor="day-number-input" className="sr-only">
+                  {lang === 'my' ? "နေ့ရက် နံပါတ်" : "Enter Day Number"}
+                </label>
                 <input
+                  id="day-number-input"
                   ref={inputRef}
                   type="number"
                   inputMode="numeric"
@@ -107,6 +111,7 @@ const JumpToDay: React.FC<JumpToDayProps> = ({ isOpen, onClose, lang, t }) => {
 
               <div className="flex flex-col gap-2 pt-2">
                 <button
+                  id="jump-to-day-submit"
                   type="submit"
                   className="w-full py-4 bg-[#D4AF37] text-black rounded-2xl font-bold hover:bg-[#B8860B] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-[#D4AF37]/20"
                 >
