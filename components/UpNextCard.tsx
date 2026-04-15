@@ -1,24 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Play } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { useAudio } from '../src/context/AudioContext';
+import JumpToDay from './JumpToDay';
 
 interface UpNextCardProps {
   nextAudio: AudioGuide | undefined;
   currentStreak: number;
-  t: {
-    play: string;
-    dayLabel: string;
-    upNext: string;
-    continueJourney: string;
-    streakLabel: string;
-  };
+  t: any;
   lang: 'my' | 'en';
 }
 
 const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, lang }) => {
   const { playAudio } = useAudio();
+  const [isJumpModalOpen, setIsJumpModalOpen] = useState(false);
+
   if (!nextAudio) return null;
 
   // Helper to convert numbers to Myanmar digits
@@ -43,16 +40,22 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
 
         <div className="relative z-10 flex items-center gap-3 md:gap-4">
           {/* Thumbnail / Day Indicator */}
-          <div className="relative shrink-0">
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsJumpModalOpen(true)}
+            className="relative shrink-0 group/icon"
+            aria-label="Jump to a specific day"
+          >
             {nextAudio.coverImage ? (
               <img 
                 src={nextAudio.coverImage} 
                 alt="" 
-                className="w-12 h-12 md:w-16 md:h-16 rounded-xl object-cover border border-white/10 shadow-lg"
+                className="w-12 h-12 md:w-16 md:h-16 rounded-xl object-cover border border-white/10 shadow-lg group-hover/icon:border-[#D4AF37]/50 transition-all"
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-gradient-to-br from-[#B8860B]/20 to-[#D4AF37]/20 border border-[#D4AF37]/30 flex flex-col items-center justify-center shadow-lg">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-gradient-to-br from-[#B8860B]/20 to-[#D4AF37]/20 border border-[#D4AF37]/30 flex flex-col items-center justify-center shadow-lg group-hover/icon:border-[#D4AF37]/60 transition-all">
                 <span className="text-[10px] font-bold text-[#D4AF37]/60 uppercase tracking-tighter leading-none mb-0.5">Day</span>
                 <span className="text-lg md:text-xl font-black text-[#D4AF37] leading-none">{dayDisplay}</span>
               </div>
@@ -62,7 +65,7 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
             <div className="absolute -top-1 -left-1 px-1.5 py-0.5 rounded-md bg-[#D4AF37] text-black text-[8px] font-black uppercase tracking-wider shadow-lg">
               Next
             </div>
-          </div>
+          </motion.button>
 
           {/* Content Section */}
           <div className="flex-1 min-w-0">
@@ -98,6 +101,13 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
           </motion.button>
         </div>
       </div>
+
+      <JumpToDay 
+        isOpen={isJumpModalOpen}
+        onClose={() => setIsJumpModalOpen(false)}
+        lang={lang}
+        t={t}
+      />
     </motion.section>
   );
 };

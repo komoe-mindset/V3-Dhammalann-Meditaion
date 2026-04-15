@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AudioGuide } from '../../types';
 import { getOfflineAudioBlob, getAllOfflineMetadata } from '../utils/indexedDB';
+import { meditationItems as meditationData } from '../../data/meditationData';
 
 interface AudioState {
   activeRecord: AudioGuide | null;
@@ -15,6 +16,8 @@ interface AudioState {
   error: string | null;
   downloadProgress: Record<string, number>;
   offlineIds: Set<string>;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 interface AudioControls {
@@ -218,31 +221,38 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  const playNext = useCallback(() => {
-    const list = meditationsRef.current;
-    if (!activeRecord || list.length === 0) return;
+  const { hasNext, hasPrevious } = useMemo(() => {
+    if (!activeRecord) return { hasNext: false, hasPrevious: false };
+    const currentIndex = meditationData.findIndex(m => m.id === activeRecord.id);
+    return {
+      hasNext: currentIndex !== -1 && currentIndex < meditationData.length - 1,
+      hasPrevious: currentIndex > 0
+    };
+  }, [activeRecord]);
 
-    const currentIndex = list.findIndex(m => m.id === activeRecord.id);
-    if (currentIndex !== -1 && currentIndex < list.length - 1) {
-      const nextRecord = list[currentIndex + 1];
-      if (nextRecord.audioUrl) {
+  const playNext = useCallback(() => {
+    if (!activeRecord) return;
+    const currentIndex = meditationData.findIndex(m => m.id === activeRecord.id);
+    if (currentIndex !== -1 && currentIndex < meditationData.length - 1) {
+      const nextItem = meditationData[currentIndex + 1];
+      const nextRecord = meditations.find(m => m.id === nextItem.id);
+      if (nextRecord) {
         playAudio(nextRecord);
       }
     }
-  }, [activeRecord, playAudio]);
+  }, [activeRecord, meditations, playAudio]);
 
   const playPrevious = useCallback(() => {
-    const list = meditationsRef.current;
-    if (!activeRecord || list.length === 0) return;
-
-    const currentIndex = list.findIndex(m => m.id === activeRecord.id);
+    if (!activeRecord) return;
+    const currentIndex = meditationData.findIndex(m => m.id === activeRecord.id);
     if (currentIndex > 0) {
-      const prevRecord = list[currentIndex - 1];
-      if (prevRecord.audioUrl) {
+      const prevItem = meditationData[currentIndex - 1];
+      const prevRecord = meditations.find(m => m.id === prevItem.id);
+      if (prevRecord) {
         playAudio(prevRecord);
       }
     }
-  }, [activeRecord, playAudio]);
+  }, [activeRecord, meditations, playAudio]);
 
   const refreshOfflineStatus = useCallback(async () => {
     const metadata = await getAllOfflineMetadata();
@@ -398,7 +408,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     error,
     downloadProgress,
     offlineIds,
-  }), [activeRecord, meditations, isPlaying, progress, currentTime, duration, volume, isBuffering, error, downloadProgress, offlineIds]);
+    hasNext,
+    hasPrevious,
+  }), [activeRecord, meditations, isPlaying, progress, currentTime, duration, volume, isBuffering, error, downloadProgress, offlineIds, hasNext, hasPrevious]);
 
   const controlValue = useMemo(() => ({
     playAudio,

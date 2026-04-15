@@ -24,6 +24,8 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
     playAudio,
     playNext,
     playPrevious,
+    hasNext,
+    hasPrevious,
     seekTo
   } = useAudio();
 
@@ -72,11 +74,16 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
             <div className="flex items-center justify-center gap-4 md:gap-8">
               <div className="flex items-center gap-4">
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={hasPrevious ? { scale: 1.1 } : {}}
+                  whileTap={hasPrevious ? { scale: 0.9 } : {}}
                   onClick={playPrevious}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
-                  aria-label={`Play previous audio session`}
+                  disabled={!hasPrevious}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    hasPrevious 
+                      ? 'text-white/70 hover:text-white hover:bg-white/10' 
+                      : 'text-white/10 cursor-not-allowed'
+                  }`}
+                  aria-label="Play Previous"
                 >
                   <SkipBack className="w-5 h-5 fill-current" aria-hidden="true" />
                 </motion.button>
@@ -114,11 +121,16 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                 </div>
 
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={hasNext ? { scale: 1.1 } : {}}
+                  whileTap={hasNext ? { scale: 0.9 } : {}}
                   onClick={playNext}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
-                  aria-label={`Play next audio session`}
+                  disabled={!hasNext}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    hasNext 
+                      ? 'text-white/70 hover:text-white hover:bg-white/10' 
+                      : 'text-white/10 cursor-not-allowed'
+                  }`}
+                  aria-label="Play Next"
                 >
                   <SkipForward className="w-5 h-5 fill-current" aria-hidden="true" />
                 </motion.button>
