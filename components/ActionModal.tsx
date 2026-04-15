@@ -7,6 +7,7 @@ import { useStorageManager } from '../src/hooks/useStorageManager';
 import { useAudio } from '../src/context/AudioContext';
 
 const TranscriptModal = lazy(() => import('./TranscriptModal'));
+const DownloadOptionsModal = lazy(() => import('./DownloadOptionsModal'));
 
 interface ActionModalProps {
   guide: AudioGuide;
@@ -20,6 +21,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
   const [isSavingToDevice, setIsSavingToDevice] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [showDownloadOptions, setShowDownloadOptions] = useState(false);
   const { storageEstimate, formatBytes, getStorageEstimate } = useStorageManager();
   const { downloadAudio, downloadProgress, refreshOfflineStatus } = useAudio();
 
@@ -61,30 +63,32 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
     }
   };
 
-  const handleSaveToDevice = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleSaveToDevice = async (type: 'mp3' | 'html' | 'both') => {
     if (isSavingToDevice || !guide.audioUrl) return;
 
     setIsSavingToDevice(true);
+    setShowDownloadOptions(false);
     try {
       const title = guide.title || `Day_${guide.id}`;
 
       // 1. MP3 Download
-      const blob = await downloadAudio(guide);
-      if (!blob) throw new Error('Audio download failed');
-      
-      const audioUrl = window.URL.createObjectURL(blob);
-      const audioLink = document.createElement('a');
-      audioLink.href = audioUrl;
-      audioLink.download = `${title}.mp3`;
-      document.body.appendChild(audioLink);
-      audioLink.click();
-      document.body.removeChild(audioLink);
-      window.URL.revokeObjectURL(audioUrl);
+      if (type === 'mp3' || type === 'both') {
+        const blob = await downloadAudio(guide);
+        if (!blob) throw new Error('Audio download failed');
+        
+        const audioUrl = window.URL.createObjectURL(blob);
+        const audioLink = document.createElement('a');
+        audioLink.href = audioUrl;
+        audioLink.download = `${title}.mp3`;
+        document.body.appendChild(audioLink);
+        audioLink.click();
+        document.body.removeChild(audioLink);
+        window.URL.revokeObjectURL(audioUrl);
+      }
 
       // 2. Delay to prevent browser blocking sequential downloads
-      if (guide.transcript) {
-        await new Promise(r => setTimeout(r, 500));
+      if ((type === 'html' || type === 'both') && guide.transcript) {
+        if (type === 'both') await new Promise(r => setTimeout(r, 500));
 
         // 3. Transcript Download (as HTML)
         const transcriptBlob = new Blob([guide.transcript], { type: 'text/html;charset=utf-8' });
@@ -101,7 +105,6 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
       onClose();
     } catch (error) {
       console.error('Save to device failed:', error);
-      // Fallback for CORS or other errors
       const fallback = window.confirm(
         t.downloadError || 'Download failed. Would you like to try opening the file in a new tab instead?'
       );
@@ -160,10 +163,10 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
                 ? 'bg-gradient-to-r from-[#B8860B] to-[#D4AF37] text-white hover:shadow-[#D4AF37]/20' 
                 : 'bg-white/5 text-white/20 cursor-not-allowed'
             }`}
-            aria-label={!guide.audioUrl ? "Audio not available" : `Play ${guide.title || `${t.dayLabel} ${guide.id}`}`}
+            aria-label={!guide.audioUrl ? t.audioUnavailable : `Play ${guide.title || `${t.dayLabel} ${guide.id}`}`}
           >
             <Play className={`w-5 h-5 fill-current ${!guide.audioUrl ? 'opacity-20' : ''}`} />
-            {guide.audioUrl ? 'Play Now' : 'Audio Unavailable'}
+            {guide.audioUrl ? t.play : t.audioUnavailable}
           </motion.button>
 
           <motion.button
@@ -177,7 +180,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             aria-label={`Read transcript for ${guide.title || `${t.dayLabel} ${guide.id}`}`}
           >
             <BookOpen className="w-5 h-5" />
-            📖 Read Audio Book
+            {t.readAudioBook}
           </motion.button>
 
           <motion.button
@@ -212,7 +215,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             ) : (
               <Download className="w-5 h-5" />
             )}
-            {isDownloading ? '' : isOffline ? 'Available Offline' : 'Download for Offline'}
+            {isDownloading ? '' : isOffline ? t.availableOffline : t.downloadForOffline}
           </motion.button>
 
           {storageEstimate && !isOffline && (
@@ -224,7 +227,10 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleSaveToDevice}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDownloadOptions(true);
+            }}
             disabled={isSavingToDevice}
             className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isSavingToDevice ? 'opacity-70 cursor-not-allowed' : ''}`}
             aria-label={`Save ${guide.title || `${t.dayLabel} ${guide.id}`} to device`}
@@ -239,7 +245,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             ) : (
               <Download className="w-5 h-5" />
             )}
-            {isSavingToDevice ? '' : 'Save to Device'}
+            {isSavingToDevice ? '' : t.saveToDevice}
           </motion.button>
 
           <motion.button
@@ -253,7 +259,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             aria-label="Close action menu"
           >
             <X className="w-5 h-5" />
-            Close
+            {t.close}
           </motion.button>
         </div>
 
@@ -263,6 +269,13 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             onClose={() => setShowTranscript(false)} 
             guide={guide}
             lang="my" // Defaulting to 'my', but this could be dynamic if needed
+          />
+          <DownloadOptionsModal
+            isOpen={showDownloadOptions}
+            onClose={() => setShowDownloadOptions(false)}
+            onDownload={handleSaveToDevice}
+            guide={guide}
+            t={t}
           />
         </Suspense>
       </motion.div>

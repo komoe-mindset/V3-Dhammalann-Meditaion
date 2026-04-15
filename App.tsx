@@ -263,7 +263,19 @@ const AppContent: React.FC = () => {
     share: lang === 'my' ? "မျှဝေရန်" : "Share",
     shareViaApps: lang === 'my' ? "အက်ပ်များမှတစ်ဆင့် မျှဝေရန်" : "Share via Apps",
     copyLink: lang === 'my' ? "လင့်ခ်ကို ကူးယူရန်" : "Copy Link",
-    copied: lang === 'my' ? "ကူးယူပြီးပါပြီ" : "Copied!"
+    copied: lang === 'my' ? "ကူးယူပြီးပါပြီ" : "Copied!",
+    downloadOptions: lang === 'my' ? "ဒေါင်းလုဒ် ရွေးချယ်စရာများ" : "Download Options",
+    mp3File: lang === 'my' ? "MP3 အသံဖိုင်" : "MP3 Audio File",
+    htmlFile: lang === 'my' ? "စာသားဖိုင် (HTML)" : "HTML Transcript",
+    bothFiles: lang === 'my' ? "ဖိုင်နှစ်မျိုးလုံး" : "Both Files",
+    mp3Desc: lang === 'my' ? "အသံဖိုင်သာ ဒေါင်းလုဒ်လုပ်ရန်" : "Download only the audio",
+    htmlDesc: lang === 'my' ? "စာသားဖိုင်သာ ဒေါင်းလုဒ်လုပ်ရန်" : "Download the text version",
+    bothDesc: lang === 'my' ? "အသံဖိုင်နှင့် စာသားဖိုင် နှစ်မျိုးလုံး" : "MP3 + HTML Transcript",
+    saveToDevice: lang === 'my' ? "စက်ထဲသို့ သိမ်းဆည်းရန်" : "Save to Device",
+    readAudioBook: lang === 'my' ? "📖 စာအုပ်ဖတ်ရန်" : "📖 Read Audio Book",
+    availableOffline: lang === 'my' ? "အော့ဖ်လိုင်း နာယူနိုင်ပါပြီ" : "Available Offline",
+    downloadForOffline: lang === 'my' ? "အော့ဖ်လိုင်း နာယူရန် ဒေါင်းလုဒ်လုပ်ရန်" : "Download for Offline",
+    audioUnavailable: lang === 'my' ? "တရားတော် မရရှိနိုင်သေးပါ" : "Audio Unavailable"
   }), [lang]);
 
   const handleAdminClick = useCallback(() => {
