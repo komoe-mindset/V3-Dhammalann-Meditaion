@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@theme {
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
 :root {
     --forest-green-light: #0d4d3a;
     --forest-green-dark: #041a13;
