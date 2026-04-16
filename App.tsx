@@ -528,6 +528,7 @@ const AppContent: React.FC = () => {
 
       <StickyMiniPlayer 
         lang={lang}
+        onToggleDone={toggleAudio}
       />
 
       <BottomNavDock 

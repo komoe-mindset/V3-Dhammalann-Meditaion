@@ -65,7 +65,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     meditationsRef.current = meditations;
-  }, [meditations]);
+    // Sync activeRecord with meditations to pick up changes (like isCompleted)
+    if (activeRecord) {
+      const updated = meditations.find(m => m.id === activeRecord.id);
+      if (updated && (
+        updated.isCompleted !== activeRecord.isCompleted || 
+        updated.title !== activeRecord.title ||
+        updated.audioUrl !== activeRecord.audioUrl
+      )) {
+        setActiveRecord(updated);
+      }
+    }
+  }, [meditations, activeRecord]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;

@@ -1,15 +1,17 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader2, Play, Pause, X, RefreshCw, SkipBack, SkipForward } from 'lucide-react';
+import { Loader2, Play, Pause, X, RefreshCw, SkipBack, SkipForward, Check } from 'lucide-react';
 
 import { useAudioState, useAudioProgress, useAudioControls } from '../src/context/AudioContext';
 
 interface StickyMiniPlayerProps {
   lang: 'my' | 'en';
+  onToggleDone: (id: number) => void;
 }
 
 const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({ 
-  lang 
+  lang,
+  onToggleDone
 }) => {
   const { 
     activeRecord, 
@@ -64,7 +66,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
           className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[80] w-full max-w-lg px-4 pb-[env(safe-area-inset-bottom)]"
           aria-label="Premium audio player"
         >
-          <div className="glass-card rounded-3xl p-4 md:p-5 border border-[#D4AF37]/40 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-[#051a12]/90 flex flex-col gap-2">
+          <div className="glass-card rounded-3xl p-4 md:p-5 border border-[#D4AF37]/40 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl bg-[#051a12]/60 flex flex-col gap-2">
             
             {/* Title Section: Above Controls */}
             <div className="flex flex-col items-center text-center mb-2 max-w-[80%] mx-auto min-w-0 w-full">
@@ -142,13 +144,27 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                 </motion.button>
               </div>
 
-              <button
-                onClick={stopAudio}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all ml-2"
-                aria-label={`Close audio player for ${titleDisplay}`}
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
+              <div className="flex items-center gap-1 ml-2">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => onToggleDone(activeRecord.id)}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    activeRecord.isCompleted ? 'text-[#D4AF37]' : 'text-white/30 hover:text-white hover:bg-white/10'
+                  }`}
+                  aria-label={activeRecord.isCompleted ? `Mark ${titleDisplay} as unfinished` : `Mark ${titleDisplay} as completed`}
+                >
+                  <Check className={`w-5 h-5 ${activeRecord.isCompleted ? 'stroke-[3]' : 'stroke-[2]'}`} aria-hidden="true" />
+                </motion.button>
+
+                <button
+                  onClick={stopAudio}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                  aria-label={`Close audio player for ${titleDisplay}`}
+                >
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             {/* Progress Bar Row */}

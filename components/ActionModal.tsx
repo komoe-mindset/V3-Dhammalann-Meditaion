@@ -130,7 +130,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] border-2 border-[#D4AF37]/40 bg-[#051a12]/90 shadow-2xl relative overflow-hidden"
+        className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] border-2 border-[#D4AF37]/40 bg-[#051a12]/70 shadow-2xl relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/5 rounded-full -mr-16 -mt-16" aria-hidden="true"></div>
