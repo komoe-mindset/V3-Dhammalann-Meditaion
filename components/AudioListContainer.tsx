@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AudioGuide } from '../types';
-import AudioCard from './AudioCard';
+import AudioCard, { AudioCardSkeleton } from './AudioCard';
 
 interface AudioListContainerProps {
   audioGuides: AudioGuide[];
@@ -11,6 +11,7 @@ interface AudioListContainerProps {
   t: {
     play: string;
     dayLabel: string;
+    storageFull?: string;
   };
   lang: 'my' | 'en';
   itemRefs: React.MutableRefObject<Map<number, HTMLDivElement | null>>;
@@ -57,17 +58,25 @@ const AudioListContainer: React.FC<AudioListContainerProps> = ({
   if (isLoading) {
     return (
       <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 -mr-2 custom-scrollbar pb-4">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="rounded-xl bg-white/5 border border-white/5 p-3 animate-pulse flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex-shrink-0"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-3 w-3/4 bg-white/10 rounded"></div>
-              <div className="h-2 w-1/4 bg-white/5 rounded"></div>
+        {[...Array(3)].map((_, monthIdx) => (
+          <div key={monthIdx} className="rounded-3xl overflow-hidden border border-white/10 bg-white/5 animate-pulse">
+            <div className="px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-5">
+                <div className="w-12 h-12 rounded-2xl bg-white/10"></div>
+                <div className="space-y-2">
+                  <div className="h-5 w-32 bg-white/10 rounded"></div>
+                  <div className="h-3 w-24 bg-white/5 rounded"></div>
+                </div>
+              </div>
+              <div className="w-5 h-5 bg-white/10 rounded"></div>
             </div>
-            <div className="flex gap-2">
-              <div className="w-9 h-9 rounded-full bg-white/10"></div>
-              <div className="w-10 h-10 rounded-full bg-white/10"></div>
-            </div>
+            {monthIdx === 0 && (
+              <div className="px-6 pb-6 pt-2 space-y-4">
+                {[...Array(3)].map((_, cardIdx) => (
+                  <AudioCardSkeleton key={cardIdx} />
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -162,7 +171,11 @@ const AudioListContainer: React.FC<AudioListContainerProps> = ({
                             onToggleDone={onToggleDone}
                             onOpenAction={onOpenAction}
                             isHighlighted={guide.id === firstUncompletedId}
-                            t={{ play: t.play, dayLabel: t.dayLabel }}
+                            t={{ 
+                              play: t.play, 
+                              dayLabel: t.dayLabel,
+                              storageFull: t.storageFull
+                            }}
                           />
                         </li>
                       ))}

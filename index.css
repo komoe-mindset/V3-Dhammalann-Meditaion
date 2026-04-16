@@ -74,6 +74,19 @@ h1, h2, h3, .wisdom-text {
     font-weight: bold;
 }
 
+.focus-ring {
+    outline: none !important;
+}
+
+.focus-ring:focus-visible {
+    outline: none !important;
+    ring-width: 2px;
+    --tw-ring-color: #22c55e; /* green-500 */
+    --tw-ring-offset-width: 2px;
+    --tw-ring-offset-color: #041a13;
+    box-shadow: 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color), 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+}
+
 
 .active-scale:active {
     transform: scale(0.96);

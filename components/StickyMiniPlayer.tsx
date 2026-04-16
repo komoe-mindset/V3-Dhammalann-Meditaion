@@ -86,7 +86,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                   whileTap={hasPrevious ? { scale: 0.9 } : {}}
                   onClick={playPrevious}
                   disabled={!hasPrevious}
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all focus-ring ${
                     hasPrevious 
                       ? 'text-white/70 hover:text-white hover:bg-white/10' 
                       : 'text-white/10 cursor-not-allowed'
@@ -108,7 +108,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={error ? () => playAudio(activeRecord) : togglePlay}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_rgba(184,134,11,0.3)] relative z-10 ${
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_rgba(184,134,11,0.3)] relative z-10 focus-ring ${
                       error 
                         ? 'bg-red-500/20 text-red-400 border border-red-500/50' 
                         : 'bg-gradient-to-br from-[#B8860B] to-[#D4AF37] text-white'
@@ -133,7 +133,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                   whileTap={hasNext ? { scale: 0.9 } : {}}
                   onClick={playNext}
                   disabled={!hasNext}
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all focus-ring ${
                     hasNext 
                       ? 'text-white/70 hover:text-white hover:bg-white/10' 
                       : 'text-white/10 cursor-not-allowed'
@@ -149,7 +149,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => onToggleDone(activeRecord.id)}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all focus-ring ${
                     activeRecord.isCompleted ? 'text-[#D4AF37]' : 'text-white/30 hover:text-white hover:bg-white/10'
                   }`}
                   aria-label={activeRecord.isCompleted ? `Mark ${titleDisplay} as unfinished` : `Mark ${titleDisplay} as completed`}
@@ -159,7 +159,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
 
                 <button
                   onClick={stopAudio}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all focus-ring"
                   aria-label={`Close audio player for ${titleDisplay}`}
                 >
                   <X className="w-5 h-5" aria-hidden="true" />
@@ -177,7 +177,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                   step="0.1"
                   value={progress}
                   onChange={(e) => seekTo(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#D4AF37] hover:accent-[#FCF6BA] transition-all"
+                  className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#D4AF37] hover:accent-[#FCF6BA] transition-all focus-ring"
                   aria-label="Seek audio position"
                 />
                 {/* Visual Progress Fill */}

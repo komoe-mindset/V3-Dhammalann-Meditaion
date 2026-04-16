@@ -14,8 +14,26 @@ interface AudioCardProps {
     play: string;
     dayLabel: string;
     download?: string;
+    storageFull?: string;
   };
 }
+
+export const AudioCardSkeleton: React.FC = () => (
+  <div className="relative bg-white/5 rounded-xl p-2 sm:p-3 gap-2 sm:gap-4 border border-white/5 flex items-center animate-pulse">
+    <div className="flex-shrink-0 w-6 sm:w-10 flex justify-center">
+      <div className="w-4 h-4 bg-white/10 rounded"></div>
+    </div>
+    <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
+      <div className="h-4 w-3/4 bg-white/10 rounded"></div>
+      <div className="h-3 w-1/4 bg-white/5 rounded"></div>
+    </div>
+    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+      <div className="w-9 h-9 rounded-full bg-white/10"></div>
+      <div className="w-10 h-10 rounded-full bg-white/10"></div>
+      <div className="w-9 h-9 rounded-full bg-white/10"></div>
+    </div>
+  </div>
+);
 
 const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({ 
   guide, 
@@ -26,7 +44,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
 }, ref) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { activeRecord, isPlaying, offlineIds, downloadProgress } = useAudioState();
-  const { togglePlay, playAudio, refreshOfflineStatus, downloadAudio } = useAudioControls();
+  const { togglePlay, playAudio, refreshOfflineStatus, downloadAudio, showNotification } = useAudioControls();
   const isActive = activeRecord?.id === guide.id;
   const isOffline = offlineIds.has(String(guide.id));
   const guideId = String(guide.id);
@@ -48,8 +66,11 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
         transcript: guide.transcript || undefined,
       });
       await refreshOfflineStatus();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Offline download failed:', error);
+      if (error.message === 'STORAGE_FULL') {
+        showNotification(t.storageFull || "Storage is full", 'error');
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -69,7 +90,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   return (
     <motion.div 
       ref={ref}
-      className={`relative bg-white/5 hover:bg-white/10 rounded-xl p-2 sm:p-3 gap-2 sm:gap-4 transition-colors border flex items-center cursor-pointer ${
+      className={`relative bg-white/5 hover:bg-white/10 rounded-xl p-2 sm:p-3 gap-2 sm:gap-4 transition-colors border flex items-center cursor-pointer focus-ring ${
         isActive
           ? 'border-[#D4AF37] bg-white/10 shadow-[0_0_20px_rgba(212,175,55,0.1)]'
           : 'border-white/5'
@@ -77,6 +98,13 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={() => onOpenAction(guide)}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenAction(guide);
+        }
+      }}
     >
       {/* Day Number Indicator - Shrunk for Mobile */}
       <div className={`flex-shrink-0 w-6 sm:w-10 text-center transition-colors ${
@@ -115,7 +143,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
             onClick={handleDownload}
             whileTap={{ scale: 0.9 }}
             disabled={isDownloading}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all relative ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all relative focus-ring ${
               isOffline 
                 ? 'text-green-400 bg-green-500/10 border border-green-500/20' 
                 : 'text-white/30 hover:text-white hover:bg-white/10'
@@ -144,7 +172,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           onClick={handlePlay}
           whileTap={guide.audioUrl ? { scale: 0.9 } : {}}
           disabled={!guide.audioUrl}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg active-scale ${
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg active-scale focus-ring ${
             isActive
               ? 'bg-[#D4AF37] text-white'
               : guide.audioUrl 
@@ -167,7 +195,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
             onToggleDone(guide.id);
           }}
           whileTap={{ scale: 0.9 }}
-          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active-scale ${
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active-scale focus-ring ${
             guide.isCompleted ? 'text-[#D4AF37]' : 'text-white/10 hover:text-white/30'
           }`}
           aria-label={guide.isCompleted ? `Mark ${titleDisplay} as unfinished` : `Mark ${titleDisplay} as completed`}

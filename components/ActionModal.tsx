@@ -24,7 +24,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
   const { storageEstimate, formatBytes, getStorageEstimate } = useStorageManager();
   const { downloadProgress } = useAudioState();
-  const { downloadAudio, refreshOfflineStatus } = useAudioControls();
+  const { downloadAudio, refreshOfflineStatus, showNotification } = useAudioControls();
 
   const guideId = String(guide.id);
   const currentProgress = downloadProgress[guideId] || 0;
@@ -57,8 +57,11 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
       await refreshOfflineStatus();
       // Update storage estimate after download
       await getStorageEstimate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Offline download failed:', error);
+      if (error.message === 'STORAGE_FULL') {
+        showNotification(t.storageFull || "Storage is full", 'error');
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -159,7 +162,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
               }
             }}
             disabled={!guide.audioUrl}
-            className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold shadow-lg transition-all ${
+            className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold shadow-lg transition-all focus-ring ${
               guide.audioUrl 
                 ? 'bg-gradient-to-r from-[#B8860B] to-[#D4AF37] text-white hover:shadow-[#D4AF37]/20' 
                 : 'bg-white/5 text-white/20 cursor-not-allowed'
@@ -177,7 +180,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
               e.stopPropagation();
               setShowTranscript(true);
             }}
-            className="flex items-center justify-center gap-3 w-full py-4 bg-white/10 text-white border border-[#D4AF37]/30 rounded-2xl font-bold hover:bg-white/20 transition-all"
+            className="flex items-center justify-center gap-3 w-full py-4 bg-white/10 text-white border border-[#D4AF37]/30 rounded-2xl font-bold hover:bg-white/20 transition-all focus-ring"
             aria-label={`Read transcript for ${guide.title || `${t.dayLabel} ${guide.id}`}`}
           >
             <BookOpen className="w-5 h-5" />
@@ -189,7 +192,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             whileTap={{ scale: 0.98 }}
             onClick={handleOfflineDownload}
             disabled={isDownloading || isOffline}
-            className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold transition-all ${
+            className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold transition-all focus-ring ${
               isOffline 
                 ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
                 : 'bg-[#B8860B]/10 text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#B8860B]/20'
@@ -233,7 +236,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
               setShowDownloadOptions(true);
             }}
             disabled={isSavingToDevice}
-            className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isSavingToDevice ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all focus-ring ${isSavingToDevice ? 'opacity-70 cursor-not-allowed' : ''}`}
             aria-label={`Save ${guide.title || `${t.dayLabel} ${guide.id}`} to device`}
           >
             {isSavingToDevice ? (
@@ -256,7 +259,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
               e.stopPropagation();
               onClose();
             }}
-            className="flex items-center justify-center gap-3 w-full py-4 text-white/40 font-bold hover:text-white transition-all"
+            className="flex items-center justify-center gap-3 w-full py-4 text-white/40 font-bold hover:text-white transition-all focus-ring"
             aria-label="Close action menu"
           >
             <X className="w-5 h-5" />

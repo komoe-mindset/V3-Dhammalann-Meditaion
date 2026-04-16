@@ -54,7 +54,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                 onOpenAdminDashboard();
                 setIsOpen(false);
               }}
-              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap"
+              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap focus-ring"
               aria-label="Open Admin Dashboard"
             >
               <span className="text-xs font-bold uppercase tracking-wider">Admin</span>
@@ -71,7 +71,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                 setLang(lang === 'my' ? 'en' : 'my');
                 // Don't close menu automatically so user can see the change
               }}
-              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap"
+              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap focus-ring"
               aria-label={lang === 'my' ? 'Switch to English' : 'မြန်မာဘာသာသို့ ပြောင်းရန်'}
             >
               <span className="text-xs font-bold uppercase tracking-wider">
@@ -94,7 +94,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                   handleInstallClick();
                   setIsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap"
+                className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap focus-ring"
                 aria-label={t.installApp}
               >
                 <span className="text-xs font-bold uppercase tracking-wider">{t.installApp}</span>
@@ -112,7 +112,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all border-2 ${
+        className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all border-2 focus-ring ${
           isOpen 
             ? 'bg-white/10 border-white/20 text-white' 
             : 'bg-gradient-to-br from-[#B8860B] to-[#D4AF37] border-[#D4AF37]/50 text-black'

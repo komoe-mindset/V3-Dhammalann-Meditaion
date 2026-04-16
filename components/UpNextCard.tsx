@@ -10,11 +10,27 @@ interface UpNextCardProps {
   currentStreak: number;
   t: any;
   lang: 'my' | 'en';
+  isLoading?: boolean;
 }
 
-const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, lang }) => {
+const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, lang, isLoading = false }) => {
   const { playAudio } = useAudioControls();
   const [isJumpModalOpen, setIsJumpModalOpen] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="mb-4 md:mb-6 glass-card rounded-2xl p-3 md:p-4 border border-white/10 animate-pulse">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-white/10 shrink-0"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-3/4 bg-white/10 rounded"></div>
+            <div className="h-3 w-1/2 bg-white/5 rounded"></div>
+          </div>
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 shrink-0"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (!nextAudio) return null;
 
@@ -44,7 +60,7 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsJumpModalOpen(true)}
-            className="relative shrink-0 group/icon"
+            className="relative shrink-0 group/icon focus-ring rounded-xl"
             aria-label="Jump to a specific day"
           >
             {nextAudio.coverImage ? (
@@ -90,7 +106,7 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
             whileTap={nextAudio.audioUrl ? { scale: 0.9 } : {}}
             onClick={() => nextAudio.audioUrl && playAudio(nextAudio)}
             disabled={!nextAudio.audioUrl}
-            className={`shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all active-scale ${
+            className={`shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all active-scale focus-ring ${
               nextAudio.audioUrl 
                 ? 'bg-gradient-to-r from-[#B8860B] to-[#D4AF37] shadow-[#B8860B]/20' 
                 : 'bg-white/5 text-white/20 cursor-not-allowed'

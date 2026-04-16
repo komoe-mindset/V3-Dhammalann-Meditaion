@@ -11,6 +11,7 @@ interface AudioState {
   volume: number;
   isBuffering: boolean;
   error: string | null;
+  notification: { message: string; type: 'success' | 'error' } | null;
   downloadProgress: Record<string, number>;
   offlineIds: Set<string>;
   hasNext: boolean;
@@ -36,6 +37,8 @@ interface AudioControls {
   setMeditations: (meditations: AudioGuide[]) => void;
   downloadAudio: (guide: AudioGuide) => Promise<Blob | undefined>;
   refreshOfflineStatus: () => Promise<void>;
+  showNotification: (message: string, type: 'success' | 'error') => void;
+  clearNotification: () => void;
 }
 
 const AudioStateContext = createContext<AudioState | undefined>(undefined);
@@ -52,6 +55,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [volume, setVolume] = useState(1);
   const [isBuffering, setIsBuffering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
 
@@ -274,6 +278,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOfflineIds(new Set(metadata.map(m => m.id)));
   }, []);
 
+  const showNotification = useCallback((message: string, type: 'success' | 'error') => {
+    setNotification({ message, type });
+    // Auto-clear after 5 seconds
+    setTimeout(() => {
+      setNotification(prev => prev?.message === message ? null : prev);
+    }, 5000);
+  }, []);
+
+  const clearNotification = useCallback(() => {
+    setNotification(null);
+  }, []);
+
   // Initial load of offline status
   useEffect(() => {
     refreshOfflineStatus();
@@ -354,6 +370,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Initialize audio element
   useEffect(() => {
     const audio = new Audio();
+    audio.preload = 'metadata';
     audioRef.current = audio;
 
     const handleTimeUpdate = () => {
@@ -380,7 +397,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => setIsBuffering(false);
     const handleError = () => {
-      setError("Audio error occurred");
+      let message = "Audio error occurred";
+      if (audio.error) {
+        switch (audio.error.code) {
+          case 1: message = "Loading aborted"; break;
+          case 2: message = "Network error"; break;
+          case 3: message = "Audio decoding failed"; break;
+          case 4: message = "Audio format not supported"; break;
+        }
+      }
+      setError(message);
       setIsBuffering(false);
       setIsPlaying(false);
     };
@@ -418,6 +444,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     volume,
     isBuffering,
     error,
+    notification,
     downloadProgress,
     offlineIds,
     hasNext,
@@ -443,7 +470,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setMeditations,
     downloadAudio,
     refreshOfflineStatus,
-  }), [playAudio, pauseAudio, resumeAudio, togglePlay, stopAudio, seekTo, setVolume, playNext, playPrevious, downloadAudio, refreshOfflineStatus]);
+    showNotification,
+    clearNotification,
+  }), [playAudio, pauseAudio, resumeAudio, togglePlay, stopAudio, seekTo, setVolume, playNext, playPrevious, downloadAudio, refreshOfflineStatus, showNotification, clearNotification]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

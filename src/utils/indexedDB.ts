@@ -65,8 +65,11 @@ export async function saveOfflineAudio(blob: Blob, metadata: Omit<AudioMetadata,
       metadata: fullMetadata,
       blob,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to save offline audio:', error);
+    if (error.name === 'QuotaExceededError' || error.message?.includes('quota')) {
+      throw new Error('STORAGE_FULL');
+    }
     throw new Error('Could not save audio for offline listening.');
   }
 }

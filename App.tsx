@@ -44,11 +44,10 @@ type Language = 'my' | 'en';
 const AppContent: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => (localStorage.getItem(LANG_KEY) as Language) || 'my');
   const [audioGuides, setAudioGuides] = useState<AudioGuide[]>(meditationItems);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
   const [actionAudio, setActionAudio] = useState<AudioGuide | null>(null);
-  const { activeRecord } = useAudioState();
-  const { stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudioControls();
+  const { activeRecord, notification } = useAudioState();
+  const { stopAudio, playAudio: contextPlayAudio, setMeditations, clearNotification } = useAudioControls();
   const { storageEstimate, formatBytes } = useStorageManager();
   const [isLoading, setIsLoading] = useState(true);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -237,6 +236,7 @@ const AppContent: React.FC = () => {
 
   const t = useMemo(() => ({
     titleEn: "Dhammalann Meditation",
+    storageFull: lang === 'my' ? "ဖုန်းတွင် နေရာလွတ် မလုံလောက်ပါ။ အော့ဖ်လိုင်း သိမ်းဆည်းရန် နေရာမရှိတော့ပါ။" : "Device storage is full. Cannot save more audio for offline listening.",
     audioTitle: lang === 'my' ? "တရားတော်များ နာယူရန်" : "Audio Sanctuary",
     audioSubtitle: lang === 'my' ? "တစ်နှစ်တာ နေ့စဉ် နာယူရန်" : "365 Days Journey",
     googleSheet: lang === 'my' ? "Google Sheet ကြည့်ရန်" : "View Google Sheet",
@@ -340,7 +340,7 @@ const AppContent: React.FC = () => {
         <div className="absolute top-4 right-0 md:top-12">
           <button
             onClick={handleShare}
-            className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-[#D4AF37] border border-[#D4AF37]/20 transition-all active:scale-90"
+            className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-[#D4AF37] border border-[#D4AF37]/20 transition-all active:scale-90 focus-ring"
             aria-label="Share this app"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,7 +351,7 @@ const AppContent: React.FC = () => {
 
         <button 
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="block mx-auto transition-transform active:scale-95 group"
+          className="block mx-auto transition-transform active:scale-95 group focus-ring rounded-2xl"
           aria-label="Go to home"
         >
           <img 
@@ -374,6 +374,7 @@ const AppContent: React.FC = () => {
         currentStreak={currentStreak}
         t={t}
         lang={lang}
+        isLoading={isLoading}
       />
 
       {/* Audio Section - PRIMARY FOCUS */}
@@ -422,7 +423,7 @@ const AppContent: React.FC = () => {
               href={PATRON_WEBSITE_URL} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-[#B8860B] text-white rounded-2xl text-xs font-bold shadow-lg hover:bg-[#9a700a] transition-all active-scale border border-[#FCF6BA]/30"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-[#B8860B] text-white rounded-2xl text-xs font-bold shadow-lg hover:bg-[#9a700a] transition-all active-scale border border-[#FCF6BA]/30 focus-ring"
             >
               {t.visitWebsite}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
@@ -431,7 +432,7 @@ const AppContent: React.FC = () => {
               href={AUDIO_SUMMARY_URL} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-white/5 text-white/80 rounded-2xl text-xs font-bold shadow-lg hover:bg-white/10 transition-all active-scale border border-white/10"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white/5 text-white/80 rounded-2xl text-xs font-bold shadow-lg hover:bg-white/10 transition-all active-scale border border-white/10 focus-ring"
             >
               {t.audioSummary}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -440,7 +441,7 @@ const AppContent: React.FC = () => {
               href={NOTEBOOK_LM_URL} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-white/5 text-white/80 rounded-2xl text-xs font-bold shadow-lg hover:bg-white/10 transition-all active-scale border border-white/10"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white/5 text-white/80 rounded-2xl text-xs font-bold shadow-lg hover:bg-white/10 transition-all active-scale border border-white/10 focus-ring"
             >
               {t.notebookLM}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.989-2.386l-.548-.547z" /></svg>
@@ -450,16 +451,34 @@ const AppContent: React.FC = () => {
       </motion.section>
 
       <AnimatePresence>
-        {successMessage && (
+        {notification && (
           <motion.div 
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-teal-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-[200] font-bold text-xs" 
+            className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-4 rounded-2xl shadow-2xl z-[200] font-bold text-xs flex items-center gap-3 border ${
+              notification.type === 'error' 
+                ? 'bg-red-900/90 text-red-100 border-red-500/50 backdrop-blur-md' 
+                : 'bg-teal-900/90 text-white border-teal-500/50 backdrop-blur-md'
+            }`} 
             role="status"
             aria-live="polite"
           >
-            {successMessage}
+            {notification.type === 'error' && (
+              <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {notification.message}
+            <button 
+              onClick={clearNotification}
+              className="ml-2 hover:opacity-70 transition-opacity"
+              aria-label="Close notification"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
