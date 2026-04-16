@@ -53,11 +53,11 @@ h1, h2, h3, .wisdom-text {
 .lang-my h1, .lang-my h2, .lang-my h3 { line-height: 1.8; }
 
 .glass-card {
-    background: rgba(4, 26, 19, 0.75);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(212, 175, 55, 0.25);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+    background-color: rgba(4, 26, 19, 0.2);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 
 .gold-border {

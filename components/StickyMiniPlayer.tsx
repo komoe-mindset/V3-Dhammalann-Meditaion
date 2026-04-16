@@ -66,7 +66,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
           className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[80] w-full max-w-lg px-4 pb-[env(safe-area-inset-bottom)]"
           aria-label="Premium audio player"
         >
-          <div className="glass-card rounded-3xl p-4 md:p-5 border border-[#D4AF37]/40 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl bg-[#051a12]/60 flex flex-col gap-2">
+          <div className="glass-card rounded-3xl p-4 md:p-5 border border-[#D4AF37]/40 shadow-[0_20px_50px_rgba(0,0,0,0.5)] !bg-[#051a12]/20 flex flex-col gap-2">
             
             {/* Title Section: Above Controls */}
             <div className="flex flex-col items-center text-center mb-2 max-w-[80%] mx-auto min-w-0 w-full">

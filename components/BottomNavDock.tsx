@@ -54,7 +54,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                 onOpenAdminDashboard();
                 setIsOpen(false);
               }}
-              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap bg-[#051a12]/70 backdrop-blur-xl"
+              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap"
               aria-label="Open Admin Dashboard"
             >
               <span className="text-xs font-bold uppercase tracking-wider">Admin</span>
@@ -71,7 +71,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                 setLang(lang === 'my' ? 'en' : 'my');
                 // Don't close menu automatically so user can see the change
               }}
-              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap bg-[#051a12]/70 backdrop-blur-xl"
+              className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap"
               aria-label={lang === 'my' ? 'Switch to English' : 'မြန်မာဘာသာသို့ ပြောင်းရန်'}
             >
               <span className="text-xs font-bold uppercase tracking-wider">
@@ -94,7 +94,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                   handleInstallClick();
                   setIsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap bg-[#051a12]/70 backdrop-blur-xl"
+                className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap"
                 aria-label={t.installApp}
               >
                 <span className="text-xs font-bold uppercase tracking-wider">{t.installApp}</span>
