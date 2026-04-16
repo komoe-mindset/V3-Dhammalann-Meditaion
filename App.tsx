@@ -13,7 +13,7 @@ import StickyMiniPlayer from './components/StickyMiniPlayer';
 import GlobalOfflineBanner from './components/GlobalOfflineBanner';
 import UpdateNotification from './components/UpdateNotification';
 
-import { AudioProvider, useAudio } from './src/context/AudioContext';
+import { AudioProvider, useAudioState, useAudioControls } from './src/context/AudioContext';
 import { useStorageManager } from './src/hooks/useStorageManager';
 
 // Initialize PocketBase
@@ -47,7 +47,8 @@ const AppContent: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
   const [actionAudio, setActionAudio] = useState<AudioGuide | null>(null);
-  const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudio();
+  const { activeRecord } = useAudioState();
+  const { stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudioControls();
   const { storageEstimate, formatBytes } = useStorageManager();
   const [isLoading, setIsLoading] = useState(true);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());

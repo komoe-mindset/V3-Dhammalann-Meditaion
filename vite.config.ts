@@ -59,8 +59,10 @@ export default defineConfig(({ mode }) => {
           output: {
             manualChunks(id) {
               if (id.includes("node_modules")) {
+                if (id.includes("react") || id.includes("react-dom") || id.includes("scheduler")) return "react-vendor";
                 if (id.includes("framer-motion") || id.includes("motion")) return "animations";
                 if (id.includes("lucide-react")) return "icons";
+                if (id.includes("pocketbase")) return "backend";
                 return "vendor";
               }
             }

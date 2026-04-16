@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Play } from 'lucide-react';
 import { AudioGuide } from '../types';
-import { useAudio } from '../src/context/AudioContext';
+import { useAudioControls } from '../src/context/AudioContext';
 import JumpToDay from './JumpToDay';
 
 interface UpNextCardProps {
@@ -13,7 +13,7 @@ interface UpNextCardProps {
 }
 
 const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, lang }) => {
-  const { playAudio } = useAudio();
+  const { playAudio } = useAudioControls();
   const [isJumpModalOpen, setIsJumpModalOpen] = useState(false);
 
   if (!nextAudio) return null;

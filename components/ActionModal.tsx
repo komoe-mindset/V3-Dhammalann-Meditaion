@@ -4,7 +4,7 @@ import { FileAudio, Play, Download, X, Loader2, Check, BookOpen } from 'lucide-r
 import { AudioGuide } from '../types';
 import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
 import { useStorageManager } from '../src/hooks/useStorageManager';
-import { useAudio } from '../src/context/AudioContext';
+import { useAudioState, useAudioControls } from '../src/context/AudioContext';
 
 const TranscriptModal = lazy(() => import('./TranscriptModal'));
 const DownloadOptionsModal = lazy(() => import('./DownloadOptionsModal'));
@@ -23,7 +23,8 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
   const [showTranscript, setShowTranscript] = useState(false);
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
   const { storageEstimate, formatBytes, getStorageEstimate } = useStorageManager();
-  const { downloadAudio, downloadProgress, refreshOfflineStatus } = useAudio();
+  const { downloadProgress } = useAudioState();
+  const { downloadAudio, refreshOfflineStatus } = useAudioControls();
 
   const guideId = String(guide.id);
   const currentProgress = downloadProgress[guideId] || 0;

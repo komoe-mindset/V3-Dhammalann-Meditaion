@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, Play, Pause, X, RefreshCw, SkipBack, SkipForward } from 'lucide-react';
 
-import { useAudio } from '../src/context/AudioContext';
+import { useAudioState, useAudioProgress, useAudioControls } from '../src/context/AudioContext';
 
 interface StickyMiniPlayerProps {
   lang: 'my' | 'en';
@@ -15,19 +15,25 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
     activeRecord, 
     isPlaying, 
     isBuffering, 
+    error, 
+    hasNext,
+    hasPrevious,
+  } = useAudioState();
+
+  const {
     progress,
     currentTime,
     duration,
-    error, 
+  } = useAudioProgress();
+
+  const {
     togglePlay, 
     stopAudio,
     playAudio,
     playNext,
     playPrevious,
-    hasNext,
-    hasPrevious,
     seekTo
-  } = useAudio();
+  } = useAudioControls();
 
   if (!activeRecord) return null;
 

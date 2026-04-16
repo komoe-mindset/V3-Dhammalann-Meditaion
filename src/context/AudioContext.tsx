@@ -8,9 +8,6 @@ interface AudioState {
   activeRecord: AudioGuide | null;
   meditations: AudioGuide[];
   isPlaying: boolean;
-  progress: number;
-  currentTime: number;
-  duration: number;
   volume: number;
   isBuffering: boolean;
   error: string | null;
@@ -18,6 +15,12 @@ interface AudioState {
   offlineIds: Set<string>;
   hasNext: boolean;
   hasPrevious: boolean;
+}
+
+interface AudioProgress {
+  currentTime: number;
+  duration: number;
+  progress: number;
 }
 
 interface AudioControls {
@@ -36,6 +39,7 @@ interface AudioControls {
 }
 
 const AudioStateContext = createContext<AudioState | undefined>(undefined);
+const AudioProgressContext = createContext<AudioProgress | undefined>(undefined);
 const AudioControlContext = createContext<AudioControls | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -400,9 +404,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     activeRecord,
     meditations,
     isPlaying,
-    progress,
-    currentTime,
-    duration,
     volume,
     isBuffering,
     error,
@@ -410,7 +411,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     offlineIds,
     hasNext,
     hasPrevious,
-  }), [activeRecord, meditations, isPlaying, progress, currentTime, duration, volume, isBuffering, error, downloadProgress, offlineIds, hasNext, hasPrevious]);
+  }), [activeRecord, meditations, isPlaying, volume, isBuffering, error, downloadProgress, offlineIds, hasNext, hasPrevious]);
+
+  const progressValue = useMemo(() => ({
+    currentTime,
+    duration,
+    progress,
+  }), [currentTime, duration, progress]);
 
   const controlValue = useMemo(() => ({
     playAudio,
@@ -450,22 +457,25 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <AudioStateContext.Provider value={stateValue}>
-      <AudioControlContext.Provider value={controlValue}>
-        {children}
-      </AudioControlContext.Provider>
+      <AudioProgressContext.Provider value={progressValue}>
+        <AudioControlContext.Provider value={controlValue}>
+          {children}
+        </AudioControlContext.Provider>
+      </AudioProgressContext.Provider>
     </AudioStateContext.Provider>
   );
 };
 
 export const useAudio = () => {
   const state = useContext(AudioStateContext);
+  const progress = useContext(AudioProgressContext);
   const controls = useContext(AudioControlContext);
   
-  if (state === undefined || controls === undefined) {
+  if (state === undefined || progress === undefined || controls === undefined) {
     throw new Error('useAudio must be used within an AudioProvider');
   }
   
-  return { ...state, ...controls };
+  return { ...state, ...progress, ...controls };
 };
 
 export const useAudioControls = () => {
@@ -480,6 +490,14 @@ export const useAudioState = () => {
   const context = useContext(AudioStateContext);
   if (context === undefined) {
     throw new Error('useAudioState must be used within an AudioProvider');
+  }
+  return context;
+};
+
+export const useAudioProgress = () => {
+  const context = useContext(AudioProgressContext);
+  if (context === undefined) {
+    throw new Error('useAudioProgress must be used within an AudioProvider');
   }
   return context;
 };

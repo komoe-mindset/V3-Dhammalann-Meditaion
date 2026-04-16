@@ -37,7 +37,7 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
   }, [isOpen]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100]" ref={menuRef}>
+    <nav className="fixed bottom-6 right-6 z-[100]" ref={menuRef} role="navigation" aria-label="Main Navigation Menu">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -55,10 +55,11 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                 setIsOpen(false);
               }}
               className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap bg-[#051a12]/90 backdrop-blur-xl"
+              aria-label="Open Admin Dashboard"
             >
               <span className="text-xs font-bold uppercase tracking-wider">Admin</span>
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
-                <Shield className="w-5 h-5 text-[#D4AF37]" />
+                <Shield className="w-5 h-5 text-[#D4AF37]" aria-hidden="true" />
               </div>
             </motion.button>
 
@@ -71,12 +72,13 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                 // Don't close menu automatically so user can see the change
               }}
               className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap bg-[#051a12]/90 backdrop-blur-xl"
+              aria-label={lang === 'my' ? 'Switch to English' : 'မြန်မာဘာသာသို့ ပြောင်းရန်'}
             >
               <span className="text-xs font-bold uppercase tracking-wider">
                 {lang === 'my' ? 'English' : 'မြန်မာဘာသာ'}
               </span>
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 relative">
-                <Globe className="w-5 h-5 text-[#D4AF37]" />
+                <Globe className="w-5 h-5 text-[#D4AF37]" aria-hidden="true" />
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#B8860B] text-[8px] font-bold text-white ring-1 ring-black/50">
                   {lang === 'my' ? 'MY' : 'EN'}
                 </span>
@@ -93,10 +95,11 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
                   setIsOpen(false);
                 }}
                 className="flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border border-[#D4AF37]/30 text-white shadow-xl whitespace-nowrap bg-[#051a12]/90 backdrop-blur-xl"
+                aria-label={t.installApp}
               >
                 <span className="text-xs font-bold uppercase tracking-wider">{t.installApp}</span>
                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
-                  <Download className="w-5 h-5 text-[#D4AF37]" />
+                  <Download className="w-5 h-5 text-[#D4AF37]" aria-hidden="true" />
                 </div>
               </motion.button>
             )}
@@ -114,16 +117,16 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
             ? 'bg-white/10 border-white/20 text-white' 
             : 'bg-gradient-to-br from-[#B8860B] to-[#D4AF37] border-[#D4AF37]/50 text-black'
         }`}
-        aria-label="Settings Menu"
+        aria-label={isOpen ? "Close Settings Menu" : "Open Settings Menu"}
         aria-expanded={isOpen}
       >
         {isOpen ? (
-          <X className="w-6 h-6" />
+          <X className="w-6 h-6" aria-hidden="true" />
         ) : (
-          <Settings className="w-6 h-6 animate-spin-slow" />
+          <Settings className="w-6 h-6 animate-spin-slow" aria-hidden="true" />
         )}
       </motion.button>
-    </div>
+    </nav>
   );
 };
 

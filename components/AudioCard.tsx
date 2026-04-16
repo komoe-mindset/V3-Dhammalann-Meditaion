@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Check, Download, Loader2, Pause } from 'lucide-react';
 import { AudioGuide } from '../types';
-import { useAudio } from '../src/context/AudioContext';
+import { useAudioState, useAudioControls } from '../src/context/AudioContext';
 import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
 
 interface AudioCardProps {
@@ -25,7 +25,8 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   t 
 }, ref) => {
   const [isDownloading, setIsDownloading] = useState(false);
-  const { activeRecord, isPlaying, togglePlay, playAudio, offlineIds, refreshOfflineStatus, downloadAudio, downloadProgress } = useAudio();
+  const { activeRecord, isPlaying, offlineIds, downloadProgress } = useAudioState();
+  const { togglePlay, playAudio, refreshOfflineStatus, downloadAudio } = useAudioControls();
   const isActive = activeRecord?.id === guide.id;
   const isOffline = offlineIds.has(String(guide.id));
   const guideId = String(guide.id);
@@ -123,7 +124,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           >
             {isDownloading ? (
               <div className="relative w-full h-full flex items-center justify-center">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                 {currentProgress > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-white text-[8px] px-1 rounded-full font-bold">
                     {currentProgress}%
@@ -131,9 +132,9 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
                 )}
               </div>
             ) : isOffline ? (
-              <Check className="w-4 h-4 stroke-[3]" />
+              <Check className="w-4 h-4 stroke-[3]" aria-hidden="true" />
             ) : (
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4" aria-hidden="true" />
             )}
           </motion.button>
         )}
@@ -153,9 +154,9 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           aria-label={!guide.audioUrl ? "Audio not available" : isActive && isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
         >
           {isActive && isPlaying ? (
-            <Pause className="w-5 h-5 fill-current" />
+            <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
           ) : (
-            <Play className={`w-5 h-5 fill-current ml-0.5 ${!guide.audioUrl ? 'opacity-20' : ''}`} />
+            <Play className={`w-5 h-5 fill-current ml-0.5 ${!guide.audioUrl ? 'opacity-20' : ''}`} aria-hidden="true" />
           )}
         </motion.button>
 
@@ -171,7 +172,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           }`}
           aria-label={guide.isCompleted ? `Mark ${titleDisplay} as unfinished` : `Mark ${titleDisplay} as completed`}
         >
-          <Check className={`w-5 h-5 ${guide.isCompleted ? 'stroke-[3]' : 'stroke-[2]'}`} />
+          <Check className={`w-5 h-5 ${guide.isCompleted ? 'stroke-[3]' : 'stroke-[2]'}`} aria-hidden="true" />
         </motion.button>
       </div>
 
