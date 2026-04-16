@@ -33,7 +33,7 @@ const ShareModal = lazy(() => import('./components/ShareModal'));
 const STORAGE_KEY = 'mindful_project_v3';
 const LANG_KEY = 'mindfulness_lang_pref';
 const PATRON_WEBSITE_URL = "https://drsoelwin.dhammalann.org/";
-const AUDIO_SUMMARY_URL = "https://dhamma-mindset.pages.dev/";
+const AUDIO_SUMMARY_URL = "https://library.dhammalann.org/";
 const NOTEBOOK_LM_URL = "https://notebooklm.google.com/notebook/5c693072-7f7a-40a2-84da-8060c1213a8d";
 
 // Stabilize todayDate outside the component to ensure memoized callbacks remain stable
