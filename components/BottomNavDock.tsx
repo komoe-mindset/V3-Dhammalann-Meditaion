@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, Download, Globe, Shield, X } from 'lucide-react';
+import { Settings, Download, Globe, Shield, X, ServerOff } from 'lucide-react';
 
 interface BottomNavDockProps {
   isStandalone: boolean;
@@ -8,6 +8,8 @@ interface BottomNavDockProps {
   lang: 'my' | 'en';
   setLang: (lang: 'my' | 'en') => void;
   onOpenAdminDashboard: () => void;
+  onOpenMaintenanceModal?: () => void;
+  isServerDown?: boolean;
   t: any;
 }
 
@@ -17,6 +19,8 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
   lang,
   setLang,
   onOpenAdminDashboard,
+  onOpenMaintenanceModal,
+  isServerDown = false,
   t,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,6 +50,39 @@ const BottomNavDock: React.FC<BottomNavDockProps> = ({
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             className="absolute bottom-16 right-0 mb-2 flex flex-col gap-3 items-end"
           >
+            {/* Server Status / Maintenance Notice Button */}
+            {onOpenMaintenanceModal && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  onOpenMaintenanceModal();
+                  setIsOpen(false);
+                }}
+                className={`flex items-center gap-3 px-4 py-3 glass-card rounded-2xl border ${
+                  isServerDown 
+                    ? 'border-amber-500/50 bg-amber-950/40 text-amber-200 animate-pulse' 
+                    : 'border-[#D4AF37]/30 text-white'
+                } shadow-xl whitespace-nowrap focus-ring`}
+                aria-label="Server Status and Maintenance Notice"
+              >
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {isServerDown 
+                    ? (lang === 'my' ? 'ဆာဗာ သတိပေးချက်' : 'Server Notice') 
+                    : (lang === 'my' ? 'ဆာဗာ အခြေအနေ' : 'Server Status')}
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 relative">
+                  <ServerOff className={`w-5 h-5 ${isServerDown ? 'text-amber-400' : 'text-[#D4AF37]'}`} aria-hidden="true" />
+                  {isServerDown && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                  )}
+                </div>
+              </motion.button>
+            )}
+
             {/* Admin Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}

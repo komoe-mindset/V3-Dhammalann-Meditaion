@@ -12,6 +12,7 @@ import UpNextCard from './components/UpNextCard';
 import StickyMiniPlayer from './components/StickyMiniPlayer';
 import GlobalOfflineBanner from './components/GlobalOfflineBanner';
 import UpdateNotification from './components/UpdateNotification';
+import ServerMaintenanceBanner from './components/ServerMaintenanceBanner';
 
 import { AudioProvider, useAudioState, useAudioControls } from './src/context/AudioContext';
 import { useStorageManager } from './src/hooks/useStorageManager';
@@ -25,6 +26,7 @@ const InstallModal = lazy(() => import('./components/InstallModal'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const ActionModal = lazy(() => import('./components/ActionModal'));
 const ShareModal = lazy(() => import('./components/ShareModal'));
+const MaintenanceNotificationModal = lazy(() => import('./components/MaintenanceNotificationModal'));
 
 /**
  * AUDIO LINK SYSTEM
@@ -61,11 +63,21 @@ const AppContent: React.FC = () => {
   const [isStandalone, setIsStandalone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Server Maintenance / Server Down State
+  const [isServerDown, setIsServerDown] = useState(false);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [isRetryingServer, setIsRetryingServer] = useState(false);
+  const [serverErrorMsg, setServerErrorMsg] = useState<string | null>(null);
+
   const fetchPocketbaseData = useCallback(async () => {
     setIsLoading(true);
+    setIsRetryingServer(true);
     try {
+      const forceMaintenance = localStorage.getItem('dhammalann_force_maintenance') === 'true';
+
       const records = await pb.collection('meditations').getFullList({
         sort: '+day_number',
+        requestKey: null,
       });
 
       if (records.length > 0) {
@@ -88,10 +100,23 @@ const AppContent: React.FC = () => {
           };
         }));
       }
-    } catch (error) {
+
+      if (forceMaintenance) {
+        setIsServerDown(true);
+        setServerErrorMsg("Forced maintenance mode enabled by administrator.");
+        setShowMaintenanceModal(true);
+      } else {
+        setIsServerDown(false);
+        setServerErrorMsg(null);
+      }
+    } catch (error: any) {
       console.error("Error fetching PocketBase data:", error);
+      setIsServerDown(true);
+      setServerErrorMsg(error?.message || "Backend server unreachable");
+      setShowMaintenanceModal(true);
     } finally {
       setIsLoading(false);
+      setIsRetryingServer(false);
     }
   }, []);
 
@@ -331,6 +356,12 @@ const AppContent: React.FC = () => {
       } ${lang === 'my' ? 'lang-my' : ''}`}
     >
       <GlobalOfflineBanner />
+      <ServerMaintenanceBanner 
+        isServerDown={isServerDown}
+        onOpenNotice={() => setShowMaintenanceModal(true)}
+        onRetry={fetchPocketbaseData}
+        lang={lang}
+      />
       <UpdateNotification />
       <motion.header 
         className="text-center mb-6 md:mb-16 relative pt-4 md:pt-12"
@@ -543,6 +574,17 @@ const AppContent: React.FC = () => {
             t={t}
           />
         )}
+
+        {/* Server Maintenance Notification Modal */}
+        <MaintenanceNotificationModal 
+          isOpen={showMaintenanceModal}
+          onClose={() => setShowMaintenanceModal(false)}
+          onRetry={fetchPocketbaseData}
+          lang={lang}
+          setLang={setLang}
+          isRetrying={isRetryingServer}
+          serverErrorMsg={serverErrorMsg}
+        />
       </Suspense>
 
       <StickyMiniPlayer 
@@ -556,6 +598,8 @@ const AppContent: React.FC = () => {
         lang={lang}
         setLang={setLang}
         onOpenAdminDashboard={handleAdminClick}
+        onOpenMaintenanceModal={() => setShowMaintenanceModal(true)}
+        isServerDown={isServerDown}
         t={t}
       />
 

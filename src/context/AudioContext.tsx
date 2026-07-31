@@ -397,16 +397,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => setIsBuffering(false);
     const handleError = () => {
-      let message = "Audio error occurred";
+      let message = "Audio playback error";
       if (audio.error) {
         switch (audio.error.code) {
           case 1: message = "Loading aborted"; break;
-          case 2: message = "Network error"; break;
+          case 2: message = "Backend network error - Server down for maintenance"; break;
           case 3: message = "Audio decoding failed"; break;
-          case 4: message = "Audio format not supported"; break;
+          case 4: message = "Audio source unavailable - Server maintenance in progress"; break;
         }
       }
       setError(message);
+      setNotification({
+        message: "ဆာဗာ ပြုပြင်ထိန်းသိမ်းနေပါသဖြင့် အသံဖိုင် ဖွင့်၍မရနိုင်သေးပါ။ (Backend Server Down for Maintenance)",
+        type: "error"
+      });
       setIsBuffering(false);
       setIsPlaying(false);
     };
