@@ -1,9 +1,9 @@
 
-import PocketBase from 'pocketbase';
 import React, { useState, useEffect, Suspense, lazy, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AudioGuide } from './types';
 import { meditationItems } from './data/meditationData';
+import { fetchMeditations } from './src/lib/meditationService';
 import logoUrl from './public/icon.svg';
 import AudioCard from './components/AudioCard';
 import BottomNavDock from './components/BottomNavDock';
@@ -17,9 +17,6 @@ import ServerMaintenanceBanner from './components/ServerMaintenanceBanner';
 import { AudioProvider, useAudioState, useAudioControls } from './src/context/AudioContext';
 import { useStorageManager } from './src/hooks/useStorageManager';
 
-// Initialize PocketBase
-const pb = new PocketBase('https://api.mindset-it.online');
-
 // Lazy load non-critical components
 const ExplanationModal = lazy(() => import('./components/ExplanationModal'));
 const InstallModal = lazy(() => import('./components/InstallModal'));
@@ -30,8 +27,9 @@ const MaintenanceNotificationModal = lazy(() => import('./components/Maintenance
 
 /**
  * AUDIO LINK SYSTEM
- * The app now automatically fetches links from your PocketBase backend!
+ * The app now automatically fetches links from Google Firebase (Firestore) backend!
  */
+
 const STORAGE_KEY = 'mindful_project_v3';
 const LANG_KEY = 'mindfulness_lang_pref';
 const PATRON_WEBSITE_URL = "https://drsoelwin.dhammalann.org/";
@@ -69,34 +67,29 @@ const AppContent: React.FC = () => {
   const [isRetryingServer, setIsRetryingServer] = useState(false);
   const [serverErrorMsg, setServerErrorMsg] = useState<string | null>(null);
 
-  const fetchPocketbaseData = useCallback(async () => {
+  const fetchFirestoreData = useCallback(async () => {
     setIsLoading(true);
     setIsRetryingServer(true);
     try {
       const forceMaintenance = localStorage.getItem('dhammalann_force_maintenance') === 'true';
 
-      const records = await pb.collection('meditations').getFullList({
-        sort: '+day_number',
-        requestKey: null,
-      });
+      const fetchedList = await fetchMeditations();
 
-      if (records.length > 0) {
+      if (fetchedList && fetchedList.length > 0) {
         setAudioGuides(prev => prev.map(guide => {
-          const record = records.find(r => r.day_number === guide.id);
-          if (!record) return guide;
+          const remote = fetchedList.find(r => r.id === guide.id);
+          if (!remote) return guide;
 
-          const url = pb.files.getUrl(record, record.audio_file);
           return {
             ...guide,
-            day_number: record.day_number,
-            title: record.title,
-            fileName: record.title,
-            explanation: record.title,
-            date: record.date_string || guide.date,
-            audioUrl: url,
-            downloadUrl: url,
-            transcript: record.transcript,
-            // isCompleted is preserved from prev state
+            title: remote.title || guide.title,
+            fileName: remote.fileName || guide.fileName,
+            explanation: remote.explanation || guide.explanation,
+            date: remote.date || guide.date,
+            audioUrl: remote.audioUrl || guide.audioUrl,
+            downloadUrl: remote.downloadUrl || remote.audioUrl || guide.downloadUrl,
+            transcript: remote.transcript || guide.transcript,
+            // isCompleted is preserved from prev local completion state
           };
         }));
       }
@@ -110,7 +103,7 @@ const AppContent: React.FC = () => {
         setServerErrorMsg(null);
       }
     } catch (error: any) {
-      console.error("Error fetching PocketBase data:", error);
+      console.error("Error fetching Firestore data:", error);
       setIsServerDown(true);
       setServerErrorMsg(error?.message || "Backend server unreachable");
       setShowMaintenanceModal(true);
@@ -119,6 +112,7 @@ const AppContent: React.FC = () => {
       setIsRetryingServer(false);
     }
   }, []);
+
 
   const firstUncompletedId = useMemo(() => audioGuides.find(g => !g.isCompleted)?.id, [audioGuides]);
   const nextAudio = useMemo(() => audioGuides.find(g => !g.isCompleted), [audioGuides]);
@@ -163,8 +157,8 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchPocketbaseData();
-  }, [fetchPocketbaseData]);
+    fetchFirestoreData();
+  }, [fetchFirestoreData]);
 
   useEffect(() => {
     if (actionAudio) {
@@ -314,8 +308,8 @@ const AppContent: React.FC = () => {
 
   const handleAdminClose = useCallback(() => {
     setShowAdminDashboard(false);
-    fetchPocketbaseData();
-  }, [fetchPocketbaseData]);
+    fetchFirestoreData();
+  }, [fetchFirestoreData]);
 
   const handleInstallClick = useCallback(async () => {
     if (deferredPrompt) {
@@ -359,7 +353,7 @@ const AppContent: React.FC = () => {
       <ServerMaintenanceBanner 
         isServerDown={isServerDown}
         onOpenNotice={() => setShowMaintenanceModal(true)}
-        onRetry={fetchPocketbaseData}
+        onRetry={fetchFirestoreData}
         lang={lang}
       />
       <UpdateNotification />
@@ -579,7 +573,7 @@ const AppContent: React.FC = () => {
         <MaintenanceNotificationModal 
           isOpen={showMaintenanceModal}
           onClose={() => setShowMaintenanceModal(false)}
-          onRetry={fetchPocketbaseData}
+          onRetry={fetchFirestoreData}
           lang={lang}
           setLang={setLang}
           isRetrying={isRetryingServer}

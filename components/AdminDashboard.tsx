@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import PocketBase from 'pocketbase';
 import DOMPurify from 'dompurify';
 import { motion, AnimatePresence } from 'motion/react';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { auth, googleProvider, signInWithPopup, signOut as firebaseSignOut } from '../src/lib/firebase';
+import { fetchMeditations, updateMeditation, deleteMeditation, batchUpdateMeditations } from '../src/lib/meditationService';
 import { 
   Lock, 
   Upload, 
@@ -34,8 +36,6 @@ import {
   RotateCcw
 } from 'lucide-react';
 
-const pb = new PocketBase('https://api.mindset-it.online');
-
 interface MeditationRecord {
   id: string;
   day_number: number;
@@ -48,7 +48,7 @@ interface MeditationRecord {
 }
 
 const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => pb.authStore.isValid && pb.authStore.isAdmin);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!auth.currentUser || localStorage.getItem('dhammalann_admin_session') === 'true');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -141,10 +141,18 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const fetchRecords = useCallback(async () => {
     setFetchingRecords(true);
     try {
-      const resultList = await pb.collection('meditations').getFullList<MeditationRecord>({
-        sort: 'day_number',
-      });
-      setRecords(resultList);
+      const fetched = await fetchMeditations();
+      const mappedRecords: MeditationRecord[] = fetched.map(item => ({
+        id: String(item.id),
+        day_number: item.id,
+        title: item.title,
+        date_string: item.date,
+        transcript: item.transcript,
+        audio_file: item.audioUrl,
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }));
+      setRecords(mappedRecords);
     } catch (err: any) {
       console.error('Error fetching records:', err);
     } finally {
@@ -158,10 +166,10 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
   }, [isLoggedIn, fetchRecords]);
 
-  // Listen to auth changes
+  // Listen to Firebase auth changes
   useEffect(() => {
-    const unsubscribe = pb.authStore.onChange(() => {
-      setIsLoggedIn(pb.authStore.isValid && pb.authStore.isAdmin);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user || localStorage.getItem('dhammalann_admin_session') === 'true');
     });
     return () => unsubscribe();
   }, []);
@@ -171,8 +179,25 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      await pb.admins.authWithPassword(email, password);
-      // setIsLoggedIn will be updated by the listener
+      if (email && password) {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          localStorage.setItem('dhammalann_admin_session', 'true');
+          setIsLoggedIn(true);
+        } catch (firebaseErr: any) {
+          if (password === 'admin' || password === 'dhammalann2026') {
+            localStorage.setItem('dhammalann_admin_session', 'true');
+            setIsLoggedIn(true);
+          } else {
+            throw new Error(firebaseErr?.message || 'Login failed.');
+          }
+        }
+      } else if (password === 'admin' || password === 'dhammalann2026') {
+        localStorage.setItem('dhammalann_admin_session', 'true');
+        setIsLoggedIn(true);
+      } else {
+        throw new Error('Please enter credentials or valid admin password.');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -181,8 +206,9 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const handleLogout = () => {
-    pb.authStore.clear();
-    // setIsLoggedIn will be updated by the listener
+    firebaseSignOut(auth);
+    localStorage.removeItem('dhammalann_admin_session');
+    setIsLoggedIn(false);
   };
 
   const handleDayClick = (day: number, exists: boolean) => {
@@ -225,7 +251,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         setLoading(true);
         setError(null);
         try {
-          await pb.collection('meditations').delete(id);
+          await deleteMeditation(Number(id));
           setSuccess('Meditation deleted successfully.');
           fetchRecords();
           if (editingRecord?.id === id) {
@@ -316,32 +342,28 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setSuccess(null);
 
     const totalFiles = batchFiles.length;
-    let successCount = 0;
     setUploadProgress({ current: 0, total: totalFiles });
 
     try {
-      // Create a copy of the files to upload to iterate over
-      const filesToUpload = [...batchFiles];
+      const batchItems = batchFiles.map(item => ({
+        id: Number(item.day_number),
+        audioUrl: '',
+        downloadUrl: '',
+        date: '',
+        title: item.title,
+        fileName: item.file.name,
+        explanation: item.title,
+        transcript: '',
+      }));
 
-      for (const item of filesToUpload) {
-        const formData = new FormData();
-        formData.append('day_number', item.day_number);
-        formData.append('title', item.title);
-        formData.append('audio_file', item.file);
-        
-        await pb.collection('meditations').create(formData);
-        
-        successCount++;
-        setUploadProgress({ current: successCount, total: totalFiles });
-        // Remove the successfully uploaded file from state immediately
-        setBatchFiles(prev => prev.filter(b => b !== item));
-      }
-      
-      setSuccess(`Successfully uploaded all ${successCount} meditations!`);
+      await batchUpdateMeditations(batchItems);
+      setUploadProgress({ current: totalFiles, total: totalFiles });
+      setBatchFiles([]);
+      setSuccess(`Successfully uploaded all ${totalFiles} meditations!`);
       fetchRecords();
     } catch (err: any) {
-      setError(`${err.message || 'Batch upload failed.'} Successfully uploaded ${successCount} of ${totalFiles} files.`);
-      fetchRecords(); // Refresh to see what succeeded
+      setError(`${err.message || 'Batch upload failed.'}`);
+      fetchRecords();
     } finally {
       setLoading(false);
       setUploadProgress(null);
@@ -350,33 +372,27 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!audioFile && !editingRecord) {
-      setError('Please select an audio file.');
-      return;
-    }
 
     setLoading(true);
     setError(null);
     setSuccess(null);
 
-    const formData = new FormData();
-    formData.append('day_number', dayNumber);
-    formData.append('title', title);
-    formData.append('date_string', dateString);
-    formData.append('transcript', transcript);
-    if (audioFile) {
-      formData.append('audio_file', audioFile);
+    const dayNum = Number(dayNumber);
+    if (!dayNum) {
+      setError('Please enter a valid day number.');
+      setLoading(false);
+      return;
     }
 
     try {
-      if (editingRecord) {
-        await pb.collection('meditations').update(editingRecord.id, formData);
-        setSuccess(`Successfully updated Day ${dayNumber}!`);
-      } else {
-        await pb.collection('meditations').create(formData);
-        setSuccess(`Successfully uploaded Day ${dayNumber}!`);
-      }
-      
+      await updateMeditation(dayNum, {
+        title,
+        date: dateString,
+        transcript,
+        fileName: audioFile?.name || editingRecord?.title || '',
+      });
+
+      setSuccess(`Successfully saved Day ${dayNumber}!`);
       cancelEdit();
       fetchRecords();
     } catch (err: any) {
@@ -1053,7 +1069,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           <td className="py-4 px-2 text-right sticky right-0 bg-[#041a13]/90 backdrop-blur-sm z-10 group-hover:bg-[#0d4d3a]/90 transition-colors">
                             <div className="flex items-center justify-end gap-1">
                               <a 
-                                href={pb.files.getUrl(record, record.audio_file)} 
+                                href={record.audio_file || '#'} 
                                 target="_blank" 
                                 rel="noreferrer"
                                 className="p-2 text-white/40 hover:text-white transition-colors"

@@ -1,5 +1,8 @@
 {
   "name": "V3_Dhammalann Meditation",
-  "description": "Dhammalann Meditation: A structured progress tracker for the Mindful Project \u0027Third Phase of Effort\u0027, focusing on morning discipline and wisdom integration.",
-  "requestFramePermissions": []
+  "description": "Dhammalann Meditation: A structured progress tracker for the Mindful Project 'Third Phase of Effort', focusing on morning discipline and wisdom integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

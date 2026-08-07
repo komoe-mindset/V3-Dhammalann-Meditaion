@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "meditations": {
+      "title": "Meditations",
+      "description": "Dhamma audio guide recordings and metadata",
+      "type": "object",
+      "properties": {
+        "day_number": {
+          "type": "number",
+          "description": "Day number (1 to 240)"
+        },
+        "audio_url": {
+          "type": "string",
+          "description": "Direct streaming audio URL"
+        },
+        "download_url": {
+          "type": "string",
+          "description": "Download audio URL"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date label"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the meditation"
+        },
+        "file_name": {
+          "type": "string",
+          "description": "Original audio file name"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Dhamma explanation text"
+        },
+        "transcript": {
+          "type": "string",
+          "description": "Full HTML transcript"
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["day_number"]
+    }
+  }
+}
