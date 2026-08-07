@@ -91,7 +91,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                       ? 'text-white/70 hover:text-white hover:bg-white/10' 
                       : 'text-white/10 cursor-not-allowed'
                   }`}
-                  aria-label="Play Previous"
+                  aria-label={lang === 'my' ? 'ယခင် အသံဖိုင်သို့' : 'Play Previous'}
                 >
                   <SkipBack className="w-5 h-5 fill-current" aria-hidden="true" />
                 </motion.button>
@@ -114,6 +114,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                         : 'bg-gradient-to-br from-[#B8860B] to-[#D4AF37] text-white'
                     }`}
                     aria-label={error ? `Retry loading ${titleDisplay}` : isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
+                    aria-pressed={isPlaying}
                     disabled={isBuffering && !error}
                   >
                     {error ? (
@@ -138,7 +139,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                       ? 'text-white/70 hover:text-white hover:bg-white/10' 
                       : 'text-white/10 cursor-not-allowed'
                   }`}
-                  aria-label="Play Next"
+                  aria-label={lang === 'my' ? 'နောက် အသံဖိုင်သို့' : 'Play Next'}
                 >
                   <SkipForward className="w-5 h-5 fill-current" aria-hidden="true" />
                 </motion.button>
@@ -153,6 +154,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                     activeRecord.isCompleted ? 'text-[#D4AF37]' : 'text-white/30 hover:text-white hover:bg-white/10'
                   }`}
                   aria-label={activeRecord.isCompleted ? `Mark ${titleDisplay} as unfinished` : `Mark ${titleDisplay} as completed`}
+                  aria-pressed={activeRecord.isCompleted}
                 >
                   <Check className={`w-5 h-5 ${activeRecord.isCompleted ? 'stroke-[3]' : 'stroke-[2]'}`} aria-hidden="true" />
                 </motion.button>
@@ -179,6 +181,10 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                   onChange={(e) => seekTo(parseFloat(e.target.value))}
                   className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#D4AF37] hover:accent-[#FCF6BA] transition-all focus-ring"
                   aria-label="Seek audio position"
+                  aria-valuenow={Math.round(progress)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
                 />
                 {/* Visual Progress Fill */}
                 <div 

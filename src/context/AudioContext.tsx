@@ -380,9 +380,81 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     playNextRef.current = playNext;
   }, [playNext]);
 
+  // MediaSession API Integration
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+
+    if (!activeRecord) {
+      navigator.mediaSession.playbackState = 'none';
+      return;
+    }
+
+    const title = activeRecord.title || `Day ${activeRecord.day_number || activeRecord.id} Meditation`;
+    const artist = 'Dhammalann Meditation';
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: title,
+      artist: artist,
+      album: 'Dhammalann 365 Days Meditation',
+      artwork: [
+        { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    });
+  }, [activeRecord]);
+
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !duration || isNaN(duration) || duration <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: duration,
+        playbackRate: audioRef.current?.playbackRate || 1,
+        position: Math.min(Math.max(0, currentTime), duration),
+      });
+    } catch (e) {
+      // Ignore position state sync error
+    }
+  }, [currentTime, duration]);
+
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+
+    const actionHandlers: [MediaSessionAction, MediaSessionActionHandler | null][] = [
+      ['play', () => resumeAudio()],
+      ['pause', () => pauseAudio()],
+      ['previoustrack', () => playPrevious()],
+      ['nexttrack', () => playNext()],
+      ['stop', () => stopAudio()],
+    ];
+
+    for (const [action, handler] of actionHandlers) {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch (e) {
+        // Action not supported in browser
+      }
+    }
+
+    return () => {
+      for (const [action] of actionHandlers) {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch (e) {
+          // Ignore
+        }
+      }
+    };
+  }, [resumeAudio, pauseAudio, playPrevious, playNext, stopAudio]);
+
   // Initialize audio element
   useEffect(() => {
     const audio = new Audio();
+    audio.crossOrigin = 'anonymous';
     audio.preload = 'metadata';
     audioRef.current = audio;
 
@@ -409,6 +481,27 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => setIsBuffering(false);
+
+    const handleStalled = () => {
+      if (
+        isStoppingRef.current || 
+        !activeRecordRef.current || 
+        !audio.src || 
+        audio.src === '' || 
+        audio.src === window.location.href
+      ) {
+        return;
+      }
+      console.warn('Audio stream stalled. Network connectivity issue or stream cut off.');
+      setError("Audio stream stalled");
+      setNotification({
+        message: "တရားတော် အသံဖိုင်ရယူ၍ မရနိုင်ပါ။ လိုင်းစစ်ဆေးပါ",
+        type: "error"
+      });
+      setIsBuffering(false);
+      setIsPlaying(false);
+    };
+
     const handleError = () => {
       // Do not trigger error notification if player is stopping, activeRecord is null, or src is empty/aborted
       if (
@@ -436,7 +529,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.warn('Audio playback error:', audio.error, 'The audio URL may be invalid, missing, or blocked by CORS settings.');
       setError(message);
       setNotification({
-        message: "အသံဖိုင် ဖွင့်၍ မရနိုင်သေးပါ။ (Unable to load audio file)",
+        message: "တရားတော် အသံဖိုင်ရယူ၍ မရနိုင်ပါ။ လိုင်းစစ်ဆေးပါ",
         type: "error"
       });
       setIsBuffering(false);
@@ -448,6 +541,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('waiting', handleWaiting);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('stalled', handleStalled);
     audio.addEventListener('error', handleError);
 
     return () => {
@@ -456,9 +550,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('waiting', handleWaiting);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('stalled', handleStalled);
       audio.removeEventListener('error', handleError);
       audio.pause();
-      audio.src = '';
+      audio.removeAttribute('src');
       revokeCurrentObjectUrl();
     };
   }, [revokeCurrentObjectUrl]);

@@ -1,6 +1,7 @@
 import { 
   collection, 
   getDocs, 
+  getDoc,
   doc, 
   setDoc, 
   deleteDoc, 
@@ -20,6 +21,7 @@ const COLLECTION_NAME = 'meditations';
 /**
  * Fetch all meditation audio records from Firestore.
  * Merges Firestore records with default metadata.
+ * Optimizes performance and INP by omitting the large transcript text string.
  * Includes network fallback and timeout protection for offline resilience.
  */
 export async function fetchMeditations(): Promise<AudioGuide[]> {
@@ -38,7 +40,11 @@ export async function fetchMeditations(): Promise<AudioGuide[]> {
 
     if (snapshot.empty) {
       console.log('Firestore meditations collection is empty, returning initial dataset.');
-      return meditationItems;
+      return meditationItems.map(item => ({
+        ...item,
+        transcript: '',
+        hasTranscript: Boolean(item.transcript),
+      }));
     }
 
     const firestoreMap = new Map<number, any>();
@@ -52,7 +58,13 @@ export async function fetchMeditations(): Promise<AudioGuide[]> {
 
     const mergedList: AudioGuide[] = meditationItems.map((defaultItem) => {
       const remoteData = firestoreMap.get(defaultItem.id);
-      if (!remoteData) return defaultItem;
+      if (!remoteData) {
+        return {
+          ...defaultItem,
+          transcript: '',
+          hasTranscript: Boolean(defaultItem.transcript),
+        };
+      }
 
       return {
         ...defaultItem,
@@ -62,16 +74,44 @@ export async function fetchMeditations(): Promise<AudioGuide[]> {
         title: remoteData.title || defaultItem.title,
         fileName: remoteData.file_name || defaultItem.fileName,
         explanation: remoteData.explanation || defaultItem.explanation,
-        transcript: remoteData.transcript || defaultItem.transcript,
+        // Omit full transcript string from track list to optimize memory and INP
+        transcript: '',
+        hasTranscript: Boolean(remoteData.transcript || defaultItem.transcript),
       };
     });
 
     return mergedList;
   } catch (error: any) {
     console.warn('Firestore fetch unavailable or offline, falling back to local meditation dataset:', error?.message || error);
-    // Return default meditation items so app operates uninterrupted offline
-    return meditationItems;
+    // Return default meditation items without heavy transcripts for fast rendering
+    return meditationItems.map(item => ({
+      ...item,
+      transcript: '',
+      hasTranscript: Boolean(item.transcript),
+    }));
   }
+}
+
+/**
+ * Lazy loads the full transcript string on demand for a single meditation record from Firestore.
+ */
+export async function fetchMeditationTranscript(guideId: number): Promise<string> {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, String(guideId));
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (data.transcript) {
+        return data.transcript;
+      }
+    }
+  } catch (err) {
+    console.warn(`Firestore error fetching transcript for Day ${guideId}:`, err);
+  }
+
+  // Fallback to static item dataset if available
+  const staticItem = meditationItems.find(item => item.id === guideId);
+  return staticItem?.transcript || '';
 }
 
 /**

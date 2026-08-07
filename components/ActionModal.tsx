@@ -5,6 +5,7 @@ import { AudioGuide } from '../types';
 import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
 import { useStorageManager } from '../src/hooks/useStorageManager';
 import { useAudioState, useAudioControls } from '../src/context/AudioContext';
+import { fetchMeditationTranscript } from '../src/lib/meditationService';
 
 const TranscriptModal = lazy(() => import('./TranscriptModal'));
 const DownloadOptionsModal = lazy(() => import('./DownloadOptionsModal'));
@@ -91,19 +92,26 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
       }
 
       // 2. Delay to prevent browser blocking sequential downloads
-      if ((type === 'html' || type === 'both') && guide.transcript) {
+      if (type === 'html' || type === 'both') {
         if (type === 'both') await new Promise(r => setTimeout(r, 500));
 
-        // 3. Transcript Download (as HTML)
-        const transcriptBlob = new Blob([guide.transcript], { type: 'text/html;charset=utf-8' });
-        const transcriptUrl = window.URL.createObjectURL(transcriptBlob);
-        const transcriptLink = document.createElement('a');
-        transcriptLink.href = transcriptUrl;
-        transcriptLink.download = `${title}.html`;
-        document.body.appendChild(transcriptLink);
-        transcriptLink.click();
-        document.body.removeChild(transcriptLink);
-        window.URL.revokeObjectURL(transcriptUrl);
+        let transcriptText = guide.transcript;
+        if (!transcriptText) {
+          transcriptText = await fetchMeditationTranscript(guide.id);
+        }
+
+        if (transcriptText) {
+          // 3. Transcript Download (as HTML)
+          const transcriptBlob = new Blob([transcriptText], { type: 'text/html;charset=utf-8' });
+          const transcriptUrl = window.URL.createObjectURL(transcriptBlob);
+          const transcriptLink = document.createElement('a');
+          transcriptLink.href = transcriptUrl;
+          transcriptLink.download = `${title}.html`;
+          document.body.appendChild(transcriptLink);
+          transcriptLink.click();
+          document.body.removeChild(transcriptLink);
+          window.URL.revokeObjectURL(transcriptUrl);
+        }
       }
 
       onClose();

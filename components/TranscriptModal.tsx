@@ -1,10 +1,11 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, BookOpen } from 'lucide-react';
+import { X, BookOpen, Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify'; // REMINDER: Run 'npm install dompurify @types/dompurify' if not already installed
 import { AudioGuide } from '../types';
 import { getOfflineMetadata } from '../src/utils/indexedDB';
+import { fetchMeditationTranscript } from '../src/lib/meditationService';
 
 interface TranscriptModalProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ interface TranscriptModalProps {
 
 const TranscriptModal: React.FC<TranscriptModalProps> = ({ isOpen, onClose, guide, lang }) => {
   const [offlineTranscript, setOfflineTranscript] = useState<string | null>(null);
+  const [fetchedTranscript, setFetchedTranscript] = useState<string | null>(null);
+  const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -28,18 +31,52 @@ const TranscriptModal: React.FC<TranscriptModalProps> = ({ isOpen, onClose, guid
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && !guide.transcript) {
-      const fetchOffline = async () => {
+    if (!isOpen) {
+      setFetchedTranscript(null);
+      setOfflineTranscript(null);
+      setIsLoadingTranscript(false);
+      return;
+    }
+
+    if (guide.transcript) {
+      setFetchedTranscript(guide.transcript);
+      return;
+    }
+
+    let isMounted = true;
+    const loadTranscript = async () => {
+      setIsLoadingTranscript(true);
+      try {
+        const remoteTranscript = await fetchMeditationTranscript(guide.id);
+        if (isMounted && remoteTranscript) {
+          setFetchedTranscript(remoteTranscript);
+          setIsLoadingTranscript(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('Lazy loading transcript error:', err);
+      }
+
+      try {
         const metadata = await getOfflineMetadata(String(guide.id));
-        if (metadata?.transcript) {
+        if (isMounted && metadata?.transcript) {
           setOfflineTranscript(metadata.transcript);
         }
-      };
-      fetchOffline();
-    }
+      } catch (err) {
+        console.warn('Error reading offline metadata transcript:', err);
+      } finally {
+        if (isMounted) setIsLoadingTranscript(false);
+      }
+    };
+
+    loadTranscript();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, guide.id, guide.transcript]);
 
-  const transcriptToRender = guide.transcript || offlineTranscript;
+  const transcriptToRender = fetchedTranscript || guide.transcript || offlineTranscript;
 
   const sanitizedHtml = useMemo(() => {
     if (!transcriptToRender) return '';
@@ -118,7 +155,14 @@ const TranscriptModal: React.FC<TranscriptModalProps> = ({ isOpen, onClose, guid
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar">
-              {sanitizedHtml ? (
+              {isLoadingTranscript ? (
+                <div className="flex flex-col items-center justify-center py-20 text-white/60">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#D4AF37] mb-3" />
+                  <p className="text-[#D4AF37] text-sm font-medium">
+                    {lang === 'my' ? 'တရားတော် စာသားရယူနေသည်...' : 'Loading transcript...'}
+                  </p>
+                </div>
+              ) : sanitizedHtml ? (
                 <article 
                   className={`prose prose-invert max-w-none ${
                     lang === 'my' ? 'text-lg leading-[2.2]' : 'text-base leading-relaxed'
@@ -128,7 +172,7 @@ const TranscriptModal: React.FC<TranscriptModalProps> = ({ isOpen, onClose, guid
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-white/40 italic">
                   <BookOpen className="w-12 h-12 mb-4 opacity-10" />
-                  <p>No transcript available for this session.</p>
+                  <p>{lang === 'my' ? 'ဤတရားတော်အတွက် စာသား မရှိသေးပါ။' : 'No transcript available for this session.'}</p>
                 </div>
               )}
             </div>

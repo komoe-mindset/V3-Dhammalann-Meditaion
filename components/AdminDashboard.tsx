@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { motion, AnimatePresence } from 'motion/react';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { auth, googleProvider, signInWithPopup, signOut as firebaseSignOut } from '../src/lib/firebase';
+import { auth, googleProvider, signInWithPopup, signOut as firebaseSignOut, isFirebaseConfigValid, firebaseConfigError } from '../src/lib/firebase';
 import { fetchMeditations, updateMeditation, deleteMeditation, batchUpdateMeditations, seedAll365R2Links, R2_BASE_URL } from '../src/lib/meditationService';
 import { formatAudioUrl } from '../src/utils/urlHelper';
 import { 
@@ -597,8 +597,18 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <Lock className="text-[#D4AF37] w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold gold-text">Admin Login</h2>
-            <p className="text-white/60 text-sm">PocketBase Authentication</p>
+            <p className="text-white/60 text-sm">Firebase Authentication</p>
           </div>
+
+          {!isFirebaseConfigValid && firebaseConfigError && (
+            <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-3 mb-4 flex items-start gap-2 text-amber-200 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <div>
+                <p className="font-bold mb-0.5">Firebase Environment Warning</p>
+                <p>{firebaseConfigError}</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -655,7 +665,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   return (
     <main className="fixed inset-0 z-[300] bg-[#041a13] overflow-y-auto custom-scrollbar" aria-label="Admin Dashboard">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold gold-text">Admin Dashboard</h1>
             <p className="text-white/60">Manage Meditation Audio Library</p>
@@ -687,6 +697,16 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </button>
           </div>
         </header>
+
+        {!isFirebaseConfigValid && firebaseConfigError && (
+          <div className="bg-amber-500/20 border border-amber-500/50 rounded-2xl p-4 mb-8 flex items-start gap-3 text-amber-200 text-sm">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-400" />
+            <div>
+              <p className="font-bold mb-1">Cloudflare Pages Deployment Environment Variables Warning</p>
+              <p>{firebaseConfigError}</p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Forms */}

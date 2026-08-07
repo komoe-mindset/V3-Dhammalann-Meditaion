@@ -66,8 +66,8 @@ const DownloadOptionsModal: React.FC<DownloadOptionsModalProps> = ({
 
               <button
                 onClick={() => onDownload('html')}
-                disabled={!guide.transcript}
-                className={`flex items-center gap-4 w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group ${!guide.transcript ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={guide.hasTranscript === false}
+                className={`flex items-center gap-4 w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group ${guide.hasTranscript === false ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
                   <FileText className="w-5 h-5 text-blue-400" />
@@ -80,8 +80,8 @@ const DownloadOptionsModal: React.FC<DownloadOptionsModalProps> = ({
 
               <button
                 onClick={() => onDownload('both')}
-                disabled={!guide.transcript}
-                className={`flex items-center gap-4 w-full p-4 bg-gradient-to-r from-[#B8860B]/20 to-[#D4AF37]/20 hover:from-[#B8860B]/30 hover:to-[#D4AF37]/30 border border-[#D4AF37]/30 rounded-2xl transition-all group ${!guide.transcript ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={guide.hasTranscript === false}
+                className={`flex items-center gap-4 w-full p-4 bg-gradient-to-r from-[#B8860B]/20 to-[#D4AF37]/20 hover:from-[#B8860B]/30 hover:to-[#D4AF37]/30 border border-[#D4AF37]/30 rounded-2xl transition-all group ${guide.hasTranscript === false ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <div className="w-10 h-10 bg-[#D4AF37] rounded-xl flex items-center justify-center shadow-lg">
                   <Files className="w-5 h-5 text-black" />

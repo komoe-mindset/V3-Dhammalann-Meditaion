@@ -15,6 +15,7 @@ import UpdateNotification from './components/UpdateNotification';
 
 import { AudioProvider, useAudioState, useAudioControls } from './src/context/AudioContext';
 import { useStorageManager } from './src/hooks/useStorageManager';
+import { isFirebaseConfigValid, firebaseConfigError } from './src/lib/firebase';
 
 // Lazy load non-critical components
 const ExplanationModal = lazy(() => import('./components/ExplanationModal'));
@@ -45,7 +46,13 @@ const AppContent: React.FC = () => {
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
   const [actionAudio, setActionAudio] = useState<AudioGuide | null>(null);
   const { activeRecord, notification } = useAudioState();
-  const { stopAudio, playAudio: contextPlayAudio, setMeditations, clearNotification } = useAudioControls();
+  const { stopAudio, playAudio: contextPlayAudio, setMeditations, clearNotification, showNotification } = useAudioControls();
+
+  useEffect(() => {
+    if (!isFirebaseConfigValid && firebaseConfigError) {
+      showNotification(firebaseConfigError, 'error');
+    }
+  }, [showNotification]);
   const { storageEstimate, formatBytes } = useStorageManager();
   const [isLoading, setIsLoading] = useState(true);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -77,7 +84,8 @@ const AppContent: React.FC = () => {
             date: remote.date || guide.date,
             audioUrl: remote.audioUrl || guide.audioUrl,
             downloadUrl: remote.downloadUrl || remote.audioUrl || guide.downloadUrl,
-            transcript: remote.transcript || guide.transcript,
+            transcript: remote.transcript || guide.transcript || '',
+            hasTranscript: remote.hasTranscript !== undefined ? remote.hasTranscript : guide.hasTranscript,
             // isCompleted is preserved from prev local completion state
           };
         }));

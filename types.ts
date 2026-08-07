@@ -15,6 +15,7 @@ export interface AudioGuide {
   explanation?: string;
   coverImage?: string;
   transcript?: string;
+  hasTranscript?: boolean;
 }
 
 export interface MorningState {
