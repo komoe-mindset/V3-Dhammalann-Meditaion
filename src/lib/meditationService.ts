@@ -11,6 +11,7 @@ import {
 import { db } from './firebase';
 import { AudioGuide } from '../../types';
 import { meditationItems } from '../../data/meditationData';
+import { formatAudioUrl } from '../utils/urlHelper';
 
 const COLLECTION_NAME = 'meditations';
 
@@ -81,8 +82,14 @@ export async function updateMeditation(guideId: number, data: Partial<AudioGuide
     updated_at: new Date().toISOString(),
   };
 
-  if (data.audioUrl !== undefined) payload.audio_url = data.audioUrl;
-  if (data.downloadUrl !== undefined) payload.download_url = data.downloadUrl;
+  if (data.audioUrl !== undefined) {
+    const formattedUrl = formatAudioUrl(data.audioUrl);
+    payload.audio_url = formattedUrl;
+    payload.download_url = data.downloadUrl ? formatAudioUrl(data.downloadUrl) : formattedUrl;
+  } else if (data.downloadUrl !== undefined) {
+    payload.download_url = formatAudioUrl(data.downloadUrl);
+  }
+
   if (data.date !== undefined) payload.date = data.date;
   if (data.title !== undefined) payload.title = data.title;
   if (data.fileName !== undefined) payload.file_name = data.fileName;
@@ -101,10 +108,13 @@ export async function batchUpdateMeditations(guides: Partial<AudioGuide>[]): Pro
   guides.forEach((guide) => {
     if (!guide.id) return;
     const docRef = doc(db, COLLECTION_NAME, String(guide.id));
+    const formattedAudio = guide.audioUrl ? formatAudioUrl(guide.audioUrl) : '';
+    const formattedDownload = guide.downloadUrl ? formatAudioUrl(guide.downloadUrl) : formattedAudio;
+
     const payload = {
       day_number: guide.id,
-      audio_url: guide.audioUrl || '',
-      download_url: guide.downloadUrl || guide.audioUrl || '',
+      audio_url: formattedAudio,
+      download_url: formattedDownload,
       date: guide.date || '',
       title: guide.title || '',
       file_name: guide.fileName || '',

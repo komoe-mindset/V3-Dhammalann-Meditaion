@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider, signInWithPopup, signOut as firebaseSignOut } from '../src/lib/firebase';
 import { fetchMeditations, updateMeditation, deleteMeditation, batchUpdateMeditations } from '../src/lib/meditationService';
+import { formatAudioUrl } from '../src/utils/urlHelper';
 import { 
   Lock, 
   Upload, 
@@ -33,7 +34,9 @@ import {
   CornerDownLeft,
   Undo2,
   Redo2,
-  RotateCcw
+  RotateCcw,
+  Link2,
+  Info
 } from 'lucide-react';
 
 interface MeditationRecord {
@@ -79,7 +82,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [title, setTitle] = useState('');
   const [dateString, setDateString] = useState('');
   const [transcript, setTranscript] = useState('');
-  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioUrlInput, setAudioUrlInput] = useState('');
   const [editingRecord, setEditingRecord] = useState<MeditationRecord | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -217,7 +220,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setDayNumber(day.toString());
       setTitle('');
       setDateString('');
-      setAudioFile(null);
+      setAudioUrlInput('');
       // Scroll to form on mobile
       const formElement = document.getElementById('upload-form');
       if (formElement) {
@@ -235,7 +238,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setTitle(record.title);
     setDateString(record.date_string || '');
     setTranscript(record.transcript || '');
-    setAudioFile(null); // Keep existing file unless new one is selected
+    setAudioUrlInput(record.audio_file || '');
     
     const formElement = document.getElementById('upload-form');
     if (formElement) {
@@ -273,7 +276,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setTitle('');
     setDateString('');
     setTranscript('');
-    setAudioFile(null);
+    setAudioUrlInput('');
   };
 
   const handleBatchFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -385,11 +388,14 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     try {
+      const formattedUrl = formatAudioUrl(audioUrlInput);
       await updateMeditation(dayNum, {
         title,
         date: dateString,
         transcript,
-        fileName: audioFile?.name || editingRecord?.title || '',
+        audioUrl: formattedUrl,
+        downloadUrl: formattedUrl,
+        fileName: title,
       });
 
       setSuccess(`Successfully saved Day ${dayNumber}!`);
@@ -753,42 +759,44 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </div>
 
                     <div>
-                      <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
-                        <Music className="w-3 h-3" aria-hidden="true" /> Audio File {editingRecord && '(Optional)'}
+                      <label htmlFor="audio-url-input" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
+                        <Link2 className="w-3.5 h-3.5 text-[#D4AF37]" aria-hidden="true" /> Audio URL / Google Drive Share Link
                       </label>
-                      <div className="relative">
+                      <div className="relative space-y-1.5">
                         <input 
-                          type="file" 
-                          accept="audio/*"
-                          onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                          className="hidden"
-                          id="audio-upload"
-                          required={!editingRecord}
+                          id="audio-url-input"
+                          type="url"
+                          value={audioUrlInput}
+                          onChange={(e) => setAudioUrlInput(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#D4AF37]/50 placeholder-white/20"
+                          placeholder="https://drive.google.com/file/d/... or direct audio MP3 URL"
                         />
-                        <label 
-                          htmlFor="audio-upload"
-                          className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-xl px-4 py-8 text-white/60 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all"
-                        >
-                          {audioFile ? (
-                            <>
-                              <CheckCircle2 className="text-green-400 w-8 h-8" aria-hidden="true" />
-                              <span className="text-sm font-medium text-white">{audioFile.name}</span>
-                              <span className="text-xs uppercase">Click to change</span>
-                            </>
-                          ) : editingRecord ? (
-                            <>
-                              <Music className="w-8 h-8 opacity-40" aria-hidden="true" />
-                              <span className="text-sm font-medium text-white/80">Current: {editingRecord.audio_file}</span>
-                              <span className="text-xs uppercase">Click to upload new file</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-8 h-8 opacity-40" aria-hidden="true" />
-                              <span className="text-sm font-medium">Select Audio File</span>
-                              <span className="text-xs uppercase">MP3, WAV, M4A</span>
-                            </>
-                          )}
-                        </label>
+                        <p className="text-[11px] text-white/50 ml-1">
+                          Paste a public Google Drive share link or direct MP3 URL.
+                        </p>
+
+                        <div className="mt-2.5 p-3.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white/70 space-y-1.5">
+                          <p className="font-semibold text-[#D4AF37] flex items-center gap-1.5">
+                            <Info className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> How to use Google Drive Audio Links (Google Drive အသုံးပြုနည်း):
+                          </p>
+                          <ol className="list-decimal list-inside space-y-1 text-white/60 text-[11px] leading-relaxed pl-1">
+                            <li>
+                              <strong className="text-white/80">Upload MP3</strong> to Google Drive (Google Drive သို့ MP3 ဖိုင် တင်ပါ)
+                            </li>
+                            <li>
+                              Set access to <strong className="text-[#D4AF37]">"Anyone with the link"</strong> (ဖိုင်၏ Access ကို "Anyone with the link can view" ဟု ပြောင်းပါ)
+                            </li>
+                            <li>
+                              <strong className="text-white/80">Copy Link</strong> and paste into the box above (Link ကို Copy ကူး၍ အထက်ပါ ကွက်လပ်တွင် ထည့်ပါ)
+                            </li>
+                          </ol>
+                        </div>
+
+                        {audioUrlInput && audioUrlInput.includes('drive.google.com') && (
+                          <div className="mt-2 text-xs text-[#D4AF37] flex items-center gap-1.5 font-medium bg-[#D4AF37]/10 p-2.5 rounded-lg border border-[#D4AF37]/20">
+                            <CheckCircle2 className="w-4 h-4 shrink-0" /> Google Drive link detected — automatically converted to streamable link on save!
+                          </div>
+                        )}
                       </div>
                     </div>
 
