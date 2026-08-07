@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 import { motion, AnimatePresence } from 'motion/react';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider, signInWithPopup, signOut as firebaseSignOut } from '../src/lib/firebase';
-import { fetchMeditations, updateMeditation, deleteMeditation, batchUpdateMeditations } from '../src/lib/meditationService';
+import { fetchMeditations, updateMeditation, deleteMeditation, batchUpdateMeditations, seedAll365R2Links, R2_BASE_URL } from '../src/lib/meditationService';
 import { formatAudioUrl } from '../src/utils/urlHelper';
 import { 
   Lock, 
@@ -36,7 +36,8 @@ import {
   Redo2,
   RotateCcw,
   Link2,
-  Info
+  Info,
+  Zap
 } from 'lucide-react';
 
 interface MeditationRecord {
@@ -87,6 +88,10 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSplitView, setIsSplitView] = useState(true);
+
+  // Auto-Generate 365 R2 Links states
+  const [showR2SeedModal, setShowR2SeedModal] = useState(false);
+  const [isGeneratingR2, setIsGeneratingR2] = useState(false);
 
   // Undo/Redo History
   const [history, setHistory] = useState<string[]>(['']);
@@ -373,6 +378,23 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
   };
 
+  const handleBatchR2Generate = async () => {
+    setIsGeneratingR2(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await seedAll365R2Links();
+      setSuccess('⚡ Successfully updated R2 audio links for all 365 days!');
+      setShowR2SeedModal(false);
+      await fetchRecords();
+    } catch (err: any) {
+      console.error('Error generating 365 R2 links:', err);
+      setError(`Failed to generate R2 links: ${err?.message || err}`);
+    } finally {
+      setIsGeneratingR2(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -388,14 +410,17 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     try {
-      const formattedUrl = formatAudioUrl(audioUrlInput);
+      const formattedUrl = audioUrlInput.trim() 
+        ? formatAudioUrl(audioUrlInput) 
+        : `${R2_BASE_URL}/day_${dayNum}.mp3`;
+
       await updateMeditation(dayNum, {
         title,
         date: dateString,
         transcript,
         audioUrl: formattedUrl,
         downloadUrl: formattedUrl,
-        fileName: title,
+        fileName: title || `Day ${dayNum}`,
       });
 
       setSuccess(`Successfully saved Day ${dayNumber}!`);
@@ -635,7 +660,16 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <h1 className="text-3xl font-bold gold-text">Admin Dashboard</h1>
             <p className="text-white/60">Manage Meditation Audio Library</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <button 
+              onClick={() => setShowR2SeedModal(true)}
+              disabled={isGeneratingR2}
+              className="flex items-center gap-2 px-4 py-3 min-h-[48px] bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-[#D4AF37]/50 rounded-xl text-amber-200 text-sm font-bold transition-all shadow-lg hover:shadow-amber-500/10 active:scale-95 disabled:opacity-50"
+              title="Batch generate Cloudflare R2 audio URLs for Days 1 to 365"
+            >
+              <Zap className="w-4 h-4 text-[#D4AF37]" aria-hidden="true" />
+              ⚡ Auto-Generate All 365 R2 Audio Links
+            </button>
             <button 
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-3 min-h-[48px] bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/80 text-sm transition-all"
@@ -772,10 +806,22 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           placeholder="https://drive.google.com/file/d/... or direct audio MP3 URL"
                         />
                         <p className="text-[11px] text-white/50 ml-1">
-                          Paste a public Google Drive share link or direct MP3 URL.
+                          Paste a direct MP3 URL, Firebase Storage link, Cloudflare R2 link, or Google Drive share link.
                         </p>
 
-                        <div className="mt-2.5 p-3.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white/70 space-y-1.5">
+                        <div className="mt-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-200/90 space-y-1.5">
+                          <p className="font-semibold text-amber-300 flex items-center gap-1.5">
+                            <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" aria-hidden="true" /> Recommended Audio Hosting (အကြံပြုချက်):
+                          </p>
+                          <p className="text-[11px] leading-relaxed text-amber-100/80">
+                            Please use direct MP3 file links (e.g., Firebase Storage, Cloudflare R2, or direct file URLs). Public Google Drive view links may be blocked from streaming by Google CORS rules.
+                          </p>
+                          <p className="text-[11px] leading-relaxed text-amber-200/70 font-sans">
+                            (တိုက်ရိုက် MP3 ဖိုင် လင့်ခ်များ (ဥပမာ - Firebase Storage, Cloudflare R2 သို့မဟုတ် တိုက်ရိုက် File URL များ) ကို အသုံးပြုပေးပါ။ အများသုံး Google Drive View လင့်ခ်များသည် Google ၏ CORS စည်းမျဉ်းများကြောင့် တိုက်ရိုက် ဖွင့်ရန် ပိတ်ဆို့ခံရနိုင်ပါသည်။)
+                          </p>
+                        </div>
+
+                        <div className="mt-2 p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-white/70 space-y-1.5">
                           <p className="font-semibold text-[#D4AF37] flex items-center gap-1.5">
                             <Info className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> How to use Google Drive Audio Links (Google Drive အသုံးပြုနည်း):
                           </p>
@@ -792,9 +838,14 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           </ol>
                         </div>
 
-                        {audioUrlInput && audioUrlInput.includes('drive.google.com') && (
-                          <div className="mt-2 text-xs text-[#D4AF37] flex items-center gap-1.5 font-medium bg-[#D4AF37]/10 p-2.5 rounded-lg border border-[#D4AF37]/20">
-                            <CheckCircle2 className="w-4 h-4 shrink-0" /> Google Drive link detected — automatically converted to streamable link on save!
+                        {(audioUrlInput.includes('drive.google.com') || audioUrlInput.includes('docs.google.com')) && (
+                          <div className="mt-2 text-xs text-amber-300 flex flex-col gap-1 font-medium bg-amber-500/10 p-3 rounded-lg border border-amber-500/30">
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#D4AF37]" /> Google Drive link detected — automatically formatted for playback on save.
+                            </div>
+                            <p className="text-[11px] text-amber-200/80 font-normal pl-5">
+                              Note: If streaming fails due to Google Drive CORS limits, consider using direct MP3 URLs (Firebase / Cloudflare R2).
+                            </p>
                           </div>
                         )}
                       </div>
@@ -1190,6 +1241,66 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       Cancel
                     </button>
                   </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* R2 Batch 365 Auto-Generate Confirmation Modal */}
+          {showR2SeedModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[400] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="glass-card w-full max-w-md p-6 rounded-[2rem] border-2 border-[#D4AF37]/40 space-y-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] shrink-0">
+                    <Zap className="w-6 h-6" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Auto-Generate 365 R2 Links</h3>
+                    <p className="text-xs text-white/60">Cloudflare R2 Batch Configuration</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-white/80 leading-relaxed">
+                  This will update or create R2 audio links for <strong>Days 1 to 365</strong> in Firestore using the format:
+                </p>
+                <div className="p-3 bg-black/50 border border-white/10 rounded-xl font-mono text-xs text-[#D4AF37] break-all">
+                  {R2_BASE_URL}/day_&#123;day_number&#125;.mp3
+                </div>
+                <p className="text-xs text-amber-200/90 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 leading-relaxed">
+                  Proceed with batch generating and setting R2 links for all 365 days in Firestore?
+                </p>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setShowR2SeedModal(false)}
+                    disabled={isGeneratingR2}
+                    className="px-4 py-2.5 rounded-xl border border-white/10 text-white/70 text-sm font-medium hover:bg-white/10 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBatchR2Generate}
+                    disabled={isGeneratingR2}
+                    className="px-5 py-2.5 rounded-xl bg-[#B8860B] hover:bg-[#9a700a] text-white text-sm font-bold flex items-center gap-2 disabled:opacity-50 shadow-lg transition-all"
+                  >
+                    {isGeneratingR2 ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Generating 365 Links...
+                      </>
+                    ) : (
+                      'Yes, Generate All 365 Links'
+                    )}
+                  </button>
                 </div>
               </motion.div>
             </motion.div>

@@ -13,6 +13,8 @@ import { AudioGuide } from '../../types';
 import { meditationItems } from '../../data/meditationData';
 import { formatAudioUrl } from '../utils/urlHelper';
 
+export const R2_BASE_URL = "https://pub-898018dc57db4d3995708cca93b25c23.r2.dev";
+
 const COLLECTION_NAME = 'meditations';
 
 /**
@@ -82,13 +84,14 @@ export async function updateMeditation(guideId: number, data: Partial<AudioGuide
     updated_at: new Date().toISOString(),
   };
 
-  if (data.audioUrl !== undefined) {
-    const formattedUrl = formatAudioUrl(data.audioUrl);
-    payload.audio_url = formattedUrl;
-    payload.download_url = data.downloadUrl ? formatAudioUrl(data.downloadUrl) : formattedUrl;
-  } else if (data.downloadUrl !== undefined) {
-    payload.download_url = formatAudioUrl(data.downloadUrl);
+  let formattedUrl = data.audioUrl ? formatAudioUrl(data.audioUrl) : '';
+  if (!formattedUrl || formattedUrl.trim() === '') {
+    // Single Record Auto-Construct Logic: if audioUrl is empty, default to Cloudflare R2 URL
+    formattedUrl = `${R2_BASE_URL}/day_${guideId}.mp3`;
   }
+
+  payload.audio_url = formattedUrl;
+  payload.download_url = data.downloadUrl ? formatAudioUrl(data.downloadUrl) : formattedUrl;
 
   if (data.date !== undefined) payload.date = data.date;
   if (data.title !== undefined) payload.title = data.title;
@@ -97,6 +100,44 @@ export async function updateMeditation(guideId: number, data: Partial<AudioGuide
   if (data.transcript !== undefined) payload.transcript = data.transcript;
 
   await setDoc(docRef, payload, { merge: true });
+}
+
+/**
+  * Auto-Generate and seed R2 audio links for Days 1 through 365 in Firestore
+  */
+export async function seedAll365R2Links(): Promise<void> {
+  const defaultItemsMap = new Map<number, AudioGuide>();
+  meditationItems.forEach((item) => defaultItemsMap.set(item.id, item));
+
+  const CHUNK_SIZE = 200;
+  const days = Array.from({ length: 365 }, (_, i) => i + 1);
+
+  for (let i = 0; i < days.length; i += CHUNK_SIZE) {
+    const batch = writeBatch(db);
+    const chunk = days.slice(i, i + CHUNK_SIZE);
+
+    chunk.forEach((day) => {
+      const docRef = doc(db, COLLECTION_NAME, String(day));
+      const r2Url = `${R2_BASE_URL}/day_${day}.mp3`;
+      const defaultItem = defaultItemsMap.get(day);
+
+      const payload = {
+        day_number: day,
+        audio_url: r2Url,
+        download_url: r2Url,
+        title: defaultItem?.title || `Day ${day} Meditation`,
+        date: defaultItem?.date || `Day ${day}`,
+        file_name: defaultItem?.fileName || `day_${day}.mp3`,
+        explanation: defaultItem?.explanation || '',
+        transcript: defaultItem?.transcript || '',
+        updated_at: new Date().toISOString(),
+      };
+
+      batch.set(docRef, payload, { merge: true });
+    });
+
+    await batch.commit();
+  }
 }
 
 /**
