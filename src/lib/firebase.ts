@@ -1,7 +1,14 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, setLogLevel, enableIndexedDbPersistence } from 'firebase/firestore';
 import defaultConfig from '../../firebase-applet-config.json';
+
+// Silence non-fatal Firestore connection attempt logs when offline or on poor network
+try {
+  setLogLevel('error');
+} catch (e) {
+  // Ignore log level setup errors
+}
 
 /**
  * CLIENT HANDOFF & FIREBASE CONFIGURATION GUIDE
@@ -72,6 +79,15 @@ const googleProvider = new GoogleAuthProvider();
 const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore(app);
+
+// Enable offline persistence for seamless performance when offline or on unstable networks
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    // Multiple tabs open, persistence can only be enabled in one tab at a time.
+  } else if (err.code === 'unimplemented') {
+    // The current browser does not support all of the features required to enable persistence
+  }
+});
 
 export { app, auth, db, googleProvider, signInWithPopup, signOut, isFirebaseConfigValid, firebaseConfigError };
 

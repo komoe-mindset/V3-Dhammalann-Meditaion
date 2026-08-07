@@ -90,11 +90,13 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   return (
     <motion.div 
       ref={ref}
-      className={`relative bg-white/5 hover:bg-white/10 rounded-xl p-2 sm:p-3 gap-2 sm:gap-4 transition-colors border flex items-center cursor-pointer focus-ring ${
+      role="button"
+      aria-label={`${titleDisplay}, ${t.dayLabel} ${guide.id}`}
+      className={`relative bg-white/5 hover:bg-white/10 rounded-xl p-2 sm:p-3 gap-2 sm:gap-4 transition-colors border flex items-center cursor-pointer focus:ring-2 focus:ring-amber-500 focus:outline-none ${
         isActive
-          ? 'border-[#D4AF37] bg-white/10 shadow-[0_0_20px_rgba(212,175,55,0.1)]'
-          : 'border-white/5'
-      } ${isHighlighted ? 'ring-1 ring-[#D4AF37]' : ''}`}
+          ? 'border-[#D4AF37] bg-white/15 shadow-[0_0_20px_rgba(212,175,55,0.15)]'
+          : 'border-white/10'
+      } ${isHighlighted ? 'ring-2 ring-amber-500' : ''}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={() => onOpenAction(guide)}
@@ -106,28 +108,28 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
         }
       }}
     >
-      {/* Day Number Indicator - Shrunk for Mobile */}
+      {/* Day Number Indicator */}
       <div className={`flex-shrink-0 w-6 sm:w-10 text-center transition-colors ${
-        isActive ? 'text-[#D4AF37]' : 'text-gray-500'
+        isActive ? 'text-amber-400 font-black' : 'text-gray-300 font-bold'
       }`}>
-        <span className="text-xs sm:text-base font-bold">{guide.id}</span>
+        <span className="text-xs sm:text-base">{guide.id}</span>
       </div>
 
       {/* Content Section */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
         <h3 className={`text-sm sm:text-base font-semibold line-clamp-2 text-wrap leading-snug transition-colors ${
-          isActive ? 'text-[#D4AF37]' : 'text-gray-100'
+          isActive ? 'text-amber-300' : 'text-white'
         }`}>
           {titleDisplay}
         </h3>
         {guide.date && (
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-xs text-gray-400 font-medium">
+            <p className="text-xs text-gray-200 font-medium">
               {guide.date}
             </p>
             {isOffline && (
-              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-400 text-[10px] font-bold uppercase tracking-wider border border-green-500/20">
-                <div className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-950/80 text-green-300 text-[10px] font-bold uppercase tracking-wider border border-green-500/40">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                 Offline
               </span>
             )}
@@ -135,7 +137,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
         )}
       </div>
 
-      {/* Action Buttons - Compact for Mobile */}
+      {/* Action Buttons */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Download Button */}
         {guide.audioUrl && (
@@ -143,19 +145,19 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
             onClick={handleDownload}
             whileTap={{ scale: 0.9 }}
             disabled={isDownloading}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all relative focus-ring ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all relative focus:ring-2 focus:ring-amber-500 focus:outline-none ${
               isOffline 
-                ? 'text-green-400 bg-green-500/10 border border-green-500/20' 
-                : 'text-white/30 hover:text-white hover:bg-white/10'
+                ? 'text-green-300 bg-green-900/40 border border-green-500/40' 
+                : 'text-gray-200 hover:text-white hover:bg-white/20'
             }`}
             aria-label={isOffline ? `${titleDisplay} is available offline` : `Download ${titleDisplay} for offline listening`}
             aria-busy={isDownloading}
           >
             {isDownloading ? (
               <div className="relative w-full h-full flex items-center justify-center">
-                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" aria-hidden="true" />
                 {currentProgress > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-white text-[8px] px-1 rounded-full font-bold">
+                  <span className="absolute -top-1 -right-1 bg-amber-500 text-black text-[8px] px-1 rounded-full font-bold">
                     {currentProgress}%
                   </span>
                 )}
@@ -173,20 +175,20 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           onClick={handlePlay}
           whileTap={guide.audioUrl ? { scale: 0.9 } : {}}
           disabled={!guide.audioUrl}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg active-scale focus-ring ${
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg focus:ring-2 focus:ring-amber-500 focus:outline-none ${
             isActive
-              ? 'bg-[#D4AF37] text-white'
+              ? 'bg-amber-500 text-slate-950 font-bold'
               : guide.audioUrl 
-                ? 'bg-white/10 text-white hover:bg-white/20'
-                : 'bg-white/5 text-white/20 cursor-not-allowed'
+                ? 'bg-white/20 text-white hover:bg-white/30'
+                : 'bg-white/5 text-gray-500 cursor-not-allowed'
           }`}
-          aria-label={!guide.audioUrl ? "Audio not available" : isActive && isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
+          aria-label={!guide.audioUrl ? `Audio not available for ${titleDisplay}` : isActive && isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
           aria-pressed={isActive && isPlaying}
         >
           {isActive && isPlaying ? (
             <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
           ) : (
-            <Play className={`w-5 h-5 fill-current ml-0.5 ${!guide.audioUrl ? 'opacity-20' : ''}`} aria-hidden="true" />
+            <Play className={`w-5 h-5 fill-current ml-0.5 ${!guide.audioUrl ? 'opacity-30' : ''}`} aria-hidden="true" />
           )}
         </motion.button>
 
@@ -197,8 +199,8 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
             onToggleDone(guide.id);
           }}
           whileTap={{ scale: 0.9 }}
-          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active-scale focus-ring ${
-            guide.isCompleted ? 'text-[#D4AF37]' : 'text-white/10 hover:text-white/30'
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all focus:ring-2 focus:ring-amber-500 focus:outline-none ${
+            guide.isCompleted ? 'text-amber-400 bg-amber-500/10' : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`}
           aria-label={guide.isCompleted ? `Mark ${titleDisplay} as unfinished` : `Mark ${titleDisplay} as completed`}
           aria-pressed={guide.isCompleted}
@@ -211,7 +213,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
       {isActive && (
         <motion.div
           layoutId="active-indicator"
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[#D4AF37] rounded-r-full"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-amber-400 rounded-r-full"
         />
       )}
     </motion.div>

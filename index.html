@@ -25,7 +25,10 @@
 
     <link rel="icon" type="image/svg+xml" href="icon.svg" />
     
-    <!-- Performance Optimization: Preconnect to critical origins -->
+    <!-- Performance Optimization: Preconnect & DNS Prefetch to critical origins -->
+    <link rel="preconnect" href="https://mp3.dhammalann.org" crossorigin />
+    <link rel="dns-prefetch" href="https://mp3.dhammalann.org" />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://api.mindset-it.online" crossorigin>
@@ -52,6 +55,13 @@
     <meta name="apple-mobile-web-app-title" content="Dhammalann">
 </head>
 <body class="min-h-screen selection:bg-[#006D77] selection:text-white">
+    <noscript>
+        <div style="padding: 2rem; text-align: center; color: #D4AF37; background-color: #041a13; font-family: sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">JavaScript Required / JavaScript ဖွင့်ရန် လိုအပ်ပါသည်</h2>
+            <p style="color: #ffffff; margin-bottom: 0.5rem;">Please enable JavaScript in your browser to listen to meditation audio tracks and use Dhammalann Meditation App.</p>
+            <p style="color: #d1d5db;">တရားတော်များ နာယူရန်နှင့် အက်ပ်အသုံးပြုရန်အတွက် ကျေးဇူးပြု၍ ဘရောက်ဇာတွင် JavaScript ကို ဖွင့်ပေးပါ။</p>
+        </div>
+    </noscript>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <div id="root"></div>
 <script type="module" src="/index.tsx"></script>

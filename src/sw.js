@@ -1,9 +1,12 @@
 import { precacheAndRoute } from 'workbox-precaching';
 
-precacheAndRoute(self.__WB_MANIFEST);
+// Workbox manifest injection point
+precacheAndRoute(self.__WB_MANIFEST || []);
 
-const CACHE_NAME = 'mindful-v1';
+const CACHE_NAME = 'mindful-ui-v1';
 const MEDIA_CACHE_NAME = 'mindful-media-v1';
+const MAX_MEDIA_CACHE_BYTES = 250 * 1024 * 1024; // 250MB Quota Limit
+
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -44,11 +47,14 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
-  
-  // Check if it's an audio file
-  const isAudio = url.pathname.match(/\.(mp3|wav|m4a|ogg|aac)$/i) || 
-                  url.pathname.includes('/api/files/') ||
-                  event.request.headers.get('Accept')?.includes('audio/');
+
+  // Check if request is an MP3 audio file or from mp3.dhammalann.org
+  const isAudioDomain = url.hostname === 'mp3.dhammalann.org';
+  const isAudioExtension = url.pathname.match(/\.(mp3|wav|m4a|ogg|aac)$/i);
+  const isAudioApi = url.pathname.includes('/api/files/');
+  const isAudioHeader = event.request.headers.get('Accept')?.includes('audio/');
+
+  const isAudio = isAudioDomain || isAudioExtension || isAudioApi || isAudioHeader;
 
   // Skip Service Worker for Vite internal paths and dev modules
   const isViteDev = url.pathname.startsWith('/@') || 
@@ -58,43 +64,84 @@ self.addEventListener('fetch', (event) => {
                     url.search.includes('t=');
 
   if (isAudio) {
-    event.respondWith(handleAudioRequest(event.request));
-  } else if (!url.pathname.startsWith('/api/') && !isViteDev) {
-    // Stale-while-revalidate for static assets, excluding API calls and dev modules
+    // Strategy: Cache First for MP3 audio files with range request support & 250MB eviction
+    event.respondWith(handleAudioCacheFirst(event.request));
+  } else if (!url.pathname.startsWith('/api/') && !isViteDev && url.origin === self.location.origin) {
+    // Strategy: Stale-While-Revalidate for UI static assets and JS/CSS bundles
     event.respondWith(staleWhileRevalidate(event.request));
   }
 });
 
-async function handleAudioRequest(request) {
-  const cache = await caches.open(MEDIA_CACHE_NAME);
-  const cachedResponse = await cache.match(request);
+/**
+ * Cache First Strategy for Audio Files (https://mp3.dhammalann.org/*)
+ * Supports HTTP Range Requests (206 Partial Content) and enforces a 250MB cache limit.
+ */
+async function handleAudioCacheFirst(request) {
+  const mediaCache = await caches.open(MEDIA_CACHE_NAME);
+  // Match without range headers by creating a clean Request key
+  const cleanUrl = request.url.split('#')[0];
+  const cacheKey = new Request(cleanUrl, { method: 'GET' });
 
-  // If we have it in cache (e.g. from an explicit download), serve it with range support
+  // 1. Try Cache First
+  const cachedResponse = await mediaCache.match(cacheKey);
   if (cachedResponse) {
     return handleRangeRequest(request, cachedResponse);
   }
 
-  // If not in cache, just fetch from network without automatic caching
+  // 2. Fetch from Network if not cached
   try {
-    return await fetch(request);
+    // Fetch full audio file to allow caching and slicing for range requests
+    const fetchRequest = new Request(cleanUrl, {
+      method: 'GET',
+      headers: request.headers,
+      mode: request.mode === 'navigate' ? 'cors' : request.mode,
+      credentials: request.credentials,
+      redirect: 'follow'
+    });
+
+    const networkResponse = await fetch(fetchRequest);
+
+    if (networkResponse && (networkResponse.status === 200 || networkResponse.status === 206)) {
+      // Store in media cache
+      const responseToCache = networkResponse.clone();
+      await mediaCache.put(cacheKey, responseToCache);
+
+      // Enforce 250MB storage quota in background
+      enforceMediaCacheQuota().catch((err) => console.warn('Quota enforcement error:', err));
+
+      return handleRangeRequest(request, networkResponse);
+    }
+
+    return networkResponse;
   } catch (error) {
-    return new Response('Offline', { status: 503 });
+    // Offline fallback
+    if (cachedResponse) {
+      return handleRangeRequest(request, cachedResponse);
+    }
+    return new Response('Audio file unavailable offline', { 
+      status: 503, 
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain' }
+    });
   }
 }
 
+/**
+ * Handles HTTP Range Requests (206 Partial Content) from cached audio responses
+ */
 async function handleRangeRequest(request, response) {
   const rangeHeader = request.headers.get('Range');
   if (!rangeHeader) return response;
 
   try {
-    const blob = await response.blob();
+    const blob = await response.clone().blob();
     const match = rangeHeader.match(/bytes=(\d+)-(\d+)?/);
     if (!match) return response;
 
     const start = parseInt(match[1], 10);
     const end = match[2] ? parseInt(match[2], 10) : blob.size - 1;
 
-    if (start >= blob.size || end >= blob.size) {
+    if (start >= blob.size || (match[2] && end >= blob.size)) {
       return new Response('', {
         status: 416,
         statusText: 'Range Not Satisfiable',
@@ -106,6 +153,7 @@ async function handleRangeRequest(request, response) {
     const responseHeaders = new Headers(response.headers);
     responseHeaders.set('Content-Range', `bytes ${start}-${end}/${blob.size}`);
     responseHeaders.set('Content-Length', slicedBlob.size.toString());
+    responseHeaders.set('Accept-Ranges', 'bytes');
 
     return new Response(slicedBlob, {
       status: 206,
@@ -117,19 +165,55 @@ async function handleRangeRequest(request, response) {
   }
 }
 
+/**
+ * Enforces 250MB cache quota on MEDIA_CACHE_NAME by evicting oldest cached files
+ */
+async function enforceMediaCacheQuota() {
+  try {
+    const cache = await caches.open(MEDIA_CACHE_NAME);
+    const requests = await cache.keys();
+    let totalSizeBytes = 0;
+    const entries = [];
+
+    for (const req of requests) {
+      const res = await cache.match(req);
+      if (res) {
+        const blob = await res.clone().blob();
+        const dateHeader = res.headers.get('date');
+        const cachedTime = dateHeader ? new Date(dateHeader).getTime() : 0;
+        entries.push({ request: req, size: blob.size, time: cachedTime });
+        totalSizeBytes += blob.size;
+      }
+    }
+
+    if (totalSizeBytes > MAX_MEDIA_CACHE_BYTES) {
+      // Sort entries by cached timestamp (oldest first)
+      entries.sort((a, b) => a.time - b.time);
+
+      for (const entry of entries) {
+        if (totalSizeBytes <= MAX_MEDIA_CACHE_BYTES) break;
+        await cache.delete(entry.request);
+        totalSizeBytes -= entry.size;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to enforce media cache quota:', err);
+  }
+}
+
+/**
+ * Stale-While-Revalidate Strategy for UI Static Assets and Bundles
+ */
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
-  
+
   const fetchPromise = fetch(request).then((networkResponse) => {
-    if (networkResponse.ok) {
+    if (networkResponse && networkResponse.status === 200) {
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
-  }).catch(() => {
-    // If fetch fails, we don't want to return null to respondWith
-    return null;
-  });
+  }).catch(() => null);
 
   if (cachedResponse) {
     return cachedResponse;
@@ -140,6 +224,5 @@ async function staleWhileRevalidate(request) {
     return response;
   }
 
-  // If both fail, let the browser handle it (will show offline error)
   return fetch(request);
 }

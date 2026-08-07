@@ -486,14 +486,7 @@ const AppContent: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <Suspense fallback={
-        <div className="fixed inset-0 flex items-center justify-center z-[300] bg-[#051a12]/60 backdrop-blur-md">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin shadow-[0_0_20px_rgba(212,175,55,0.3)]"></div>
-            <p className="text-[#D4AF37] text-xs font-bold uppercase tracking-[0.2em] animate-pulse">Loading Hub...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={null}>
         {/* Admin Dashboard */}
         {showAdminDashboard && (
           <AdminDashboard onClose={handleAdminClose} />
