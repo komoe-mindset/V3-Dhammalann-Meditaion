@@ -65,7 +65,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Use refs to keep track of state for stable callbacks
   const meditationsRef = useRef(meditations);
   const isPlayingRef = useRef(isPlaying);
+  const activeRecordRef = useRef<AudioGuide | null>(activeRecord);
+  const isStoppingRef = useRef(false);
   const playNextRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    activeRecordRef.current = activeRecord;
+  }, [activeRecord]);
 
   useEffect(() => {
     meditationsRef.current = meditations;
@@ -109,7 +115,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!activeRecord || !audioRef.current) {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
+        audioRef.current.removeAttribute('src');
       }
       revokeCurrentObjectUrl();
       return;
@@ -221,15 +227,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [pauseAudio, resumeAudio]);
 
   const stopAudio = useCallback(() => {
+    isStoppingRef.current = true;
     setActiveRecord(null);
     setIsPlaying(false);
     setProgress(0);
     setCurrentTime(0);
+    setError(null);
+    setNotification(null);
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.src = '';
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
     }
     revokeCurrentObjectUrl();
+    setTimeout(() => {
+      isStoppingRef.current = false;
+    }, 200);
   }, [revokeCurrentObjectUrl]);
 
   const seekTo = useCallback((newProgress: number) => {
@@ -397,10 +410,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => setIsBuffering(false);
     const handleError = () => {
+      // Do not trigger error notification if player is stopping, activeRecord is null, or src is empty/aborted
+      if (
+        isStoppingRef.current || 
+        !activeRecordRef.current || 
+        !audio.src || 
+        audio.src === '' || 
+        audio.src === window.location.href || 
+        audio.error?.code === 1
+      ) {
+        return;
+      }
+
       let message = "Unable to load audio file";
       if (audio.error) {
         switch (audio.error.code) {
-          case 1: message = "Loading aborted"; break;
+          case 1:
+            // Aborted loading by user action or closing player
+            return;
           case 2: message = "Network error loading audio"; break;
           case 3: message = "Audio decoding failed"; break;
           case 4: message = "Audio source unavailable or URL format invalid"; break;

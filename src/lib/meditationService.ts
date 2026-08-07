@@ -103,9 +103,26 @@ export async function updateMeditation(guideId: number, data: Partial<AudioGuide
 }
 
 /**
-  * Auto-Generate and seed R2 audio links for Days 1 through 365 in Firestore
-  */
+ * Auto-Generate and seed R2 audio links for Days 1 through 365 in Firestore.
+ * Preserves 100% of existing titles, dates, transcripts, and metadata in Firestore.
+ */
 export async function seedAll365R2Links(): Promise<void> {
+  // 1. Check existing Firestore docs to preserve 100% of existing titles and metadata
+  const existingDocIds = new Set<number>();
+  try {
+    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+    snapshot.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      const dayNum = data.day_number || parseInt(docSnap.id, 10);
+      if (dayNum) {
+        existingDocIds.add(dayNum);
+      }
+    });
+  } catch (err) {
+    console.warn('Could not query existing Firestore docs prior to seeding:', err);
+  }
+
+  // 2. Map default items from static meditationData.ts
   const defaultItemsMap = new Map<number, AudioGuide>();
   meditationItems.forEach((item) => defaultItemsMap.set(item.id, item));
 
@@ -119,19 +136,26 @@ export async function seedAll365R2Links(): Promise<void> {
     chunk.forEach((day) => {
       const docRef = doc(db, COLLECTION_NAME, String(day));
       const r2Url = `${R2_BASE_URL}/day_${day}.mp3`;
-      const defaultItem = defaultItemsMap.get(day);
 
-      const payload = {
+      // Base payload ONLY includes audio_url, download_url, and updated_at
+      const payload: Record<string, any> = {
         day_number: day,
         audio_url: r2Url,
         download_url: r2Url,
-        title: defaultItem?.title || `Day ${day} Meditation`,
-        date: defaultItem?.date || `Day ${day}`,
-        file_name: defaultItem?.fileName || `day_${day}.mp3`,
-        explanation: defaultItem?.explanation || '',
-        transcript: defaultItem?.transcript || '',
         updated_at: new Date().toISOString(),
       };
+
+      // Only set initial metadata if document does NOT exist in Firestore yet
+      if (!existingDocIds.has(day)) {
+        const defaultItem = defaultItemsMap.get(day);
+        if (defaultItem) {
+          if (defaultItem.title) payload.title = defaultItem.title;
+          if (defaultItem.date) payload.date = defaultItem.date;
+          if (defaultItem.fileName) payload.file_name = defaultItem.fileName;
+          if (defaultItem.explanation) payload.explanation = defaultItem.explanation;
+          if (defaultItem.transcript) payload.transcript = defaultItem.transcript;
+        }
+      }
 
       batch.set(docRef, payload, { merge: true });
     });
