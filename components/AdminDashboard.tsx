@@ -37,7 +37,9 @@ import {
   RotateCcw,
   Link2,
   Info,
-  Zap
+  Zap,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface MeditationRecord {
@@ -85,6 +87,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [transcript, setTranscript] = useState('');
   const [audioUrlInput, setAudioUrlInput] = useState('');
   const [editingRecord, setEditingRecord] = useState<MeditationRecord | null>(null);
+  const [autoAdvance, setAutoAdvance] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSplitView, setIsSplitView] = useState(true);
@@ -250,6 +253,31 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       formElement.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  const loadDayIntoForm = useCallback((targetDay: number, existingRecords?: MeditationRecord[]) => {
+    if (targetDay < 1 || targetDay > 365) return;
+    const recs = existingRecords || records;
+    const targetRecord = recs.find(r => r.day_number === targetDay);
+    if (targetRecord) {
+      setEditingRecord(targetRecord);
+      setDayNumber(targetRecord.day_number.toString());
+      setTitle(targetRecord.title || '');
+      setDateString(targetRecord.date_string || '');
+      setTranscript(targetRecord.transcript || '');
+      setAudioUrlInput(targetRecord.audio_file || '');
+    } else {
+      setEditingRecord(null);
+      setDayNumber(targetDay.toString());
+      setTitle('');
+      setDateString('');
+      setTranscript('');
+      setAudioUrlInput('');
+    }
+    const formElement = document.getElementById('upload-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [records]);
 
   const handleDelete = async (id: string) => {
     showConfirm(
@@ -423,9 +451,33 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         fileName: title || `Day ${dayNum}`,
       });
 
-      setSuccess(`Successfully saved Day ${dayNumber}!`);
-      cancelEdit();
-      fetchRecords();
+      // Refetch records so state is up-to-date
+      const fetched = await fetchMeditations();
+      const mappedRecords: MeditationRecord[] = fetched.map(item => ({
+        id: String(item.id),
+        day_number: item.id,
+        title: item.title,
+        date_string: item.date,
+        transcript: item.transcript,
+        audio_file: item.audioUrl,
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }));
+      setRecords(mappedRecords);
+
+      const nextDay = dayNum + 1;
+      if (autoAdvance && nextDay <= 365) {
+        loadDayIntoForm(nextDay, mappedRecords);
+        const hasNextRecord = mappedRecords.some(r => r.day_number === nextDay);
+        setSuccess(
+          hasNextRecord 
+            ? `Successfully saved Day ${dayNum}! Auto-loaded Day ${nextDay} for editing.`
+            : `Successfully saved Day ${dayNum}! Ready for Day ${nextDay}.`
+        );
+      } else {
+        setSuccess(`Successfully saved Day ${dayNum}!`);
+        cancelEdit();
+      }
     } catch (err: any) {
       setError(err.message || 'Operation failed.');
     } finally {
@@ -739,7 +791,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   id="upload-form"
                   className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/30"
                 >
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
                     <div className="flex items-center gap-3">
                       {editingRecord ? (
                         <Edit className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
@@ -747,18 +799,43 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         <Upload className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
                       )}
                       <h2 id="upload-title" className="text-xl font-bold text-white">
-                        {editingRecord ? `Edit Day ${editingRecord.day_number}` : 'Upload New Day'}
+                        {editingRecord ? `Edit Day ${editingRecord.day_number}` : dayNumber ? `Day ${dayNumber} Form` : 'Upload New Day'}
                       </h2>
                     </div>
-                    {editingRecord && (
-                      <button 
-                        onClick={cancelEdit}
-                        className="p-2 hover:bg-white/10 rounded-full text-white/60 transition-colors"
-                        aria-label="Cancel editing"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
+
+                    <div className="flex items-center gap-1.5">
+                      {Number(dayNumber) > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => loadDayIntoForm(Number(dayNumber) - 1)}
+                          className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-semibold text-white/80 transition-colors flex items-center gap-1 border border-white/10"
+                          title={`Go to Day ${Number(dayNumber) - 1}`}
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" /> Day {Number(dayNumber) - 1}
+                        </button>
+                      )}
+                      {Number(dayNumber) >= 1 && Number(dayNumber) < 365 && (
+                        <button
+                          type="button"
+                          onClick={() => loadDayIntoForm(Number(dayNumber) + 1)}
+                          className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-semibold text-amber-300 transition-colors flex items-center gap-1 border border-amber-500/30"
+                          title={`Go to Day ${Number(dayNumber) + 1}`}
+                        >
+                          Day {Number(dayNumber) + 1} <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {editingRecord && (
+                        <button 
+                          type="button"
+                          onClick={cancelEdit}
+                          className="p-2 hover:bg-white/10 rounded-full text-white/60 transition-colors ml-1"
+                          aria-label="Cancel editing"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-5">
@@ -841,23 +918,6 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           </p>
                         </div>
 
-                        <div className="mt-2 p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-white/70 space-y-1.5">
-                          <p className="font-semibold text-[#D4AF37] flex items-center gap-1.5">
-                            <Info className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> How to use Google Drive Audio Links (Google Drive အသုံးပြုနည်း):
-                          </p>
-                          <ol className="list-decimal list-inside space-y-1 text-white/60 text-[11px] leading-relaxed pl-1">
-                            <li>
-                              <strong className="text-white/80">Upload MP3</strong> to Google Drive (Google Drive သို့ MP3 ဖိုင် တင်ပါ)
-                            </li>
-                            <li>
-                              Set access to <strong className="text-[#D4AF37]">"Anyone with the link"</strong> (ဖိုင်၏ Access ကို "Anyone with the link can view" ဟု ပြောင်းပါ)
-                            </li>
-                            <li>
-                              <strong className="text-white/80">Copy Link</strong> and paste into the box above (Link ကို Copy ကူး၍ အထက်ပါ ကွက်လပ်တွင် ထည့်ပါ)
-                            </li>
-                          </ol>
-                        </div>
-
                         {(audioUrlInput.includes('drive.google.com') || audioUrlInput.includes('docs.google.com')) && (
                           <div className="mt-2 text-xs text-amber-300 flex flex-col gap-1 font-medium bg-amber-500/10 p-3 rounded-lg border border-amber-500/30">
                             <div className="flex items-center gap-1.5">
@@ -884,6 +944,20 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         {success}
                       </div>
                     )}
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                      <label className="flex items-center gap-2.5 cursor-pointer text-xs text-white/80 hover:text-white transition-colors select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={autoAdvance}
+                          onChange={(e) => setAutoAdvance(e.target.checked)}
+                          className="w-4 h-4 rounded bg-white/10 border-white/20 accent-[#D4AF37] cursor-pointer"
+                        />
+                        <span className="font-medium">
+                          Auto-load Next Day (Day {Number(dayNumber) ? Number(dayNumber) + 1 : 'N+1'}) on save
+                        </span>
+                      </label>
+                    </div>
 
                     <div className="flex gap-3">
                       {editingRecord && (
