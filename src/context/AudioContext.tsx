@@ -3,6 +3,9 @@ import React, { createContext, useContext, useState, useRef, useEffect, useCallb
 import { AudioGuide } from '../../types';
 import { getOfflineAudioBlob, getAllOfflineMetadata } from '../utils/indexedDB';
 import { meditationItems as meditationData } from '../../data/meditationData';
+import { normalizeAudioUrl } from '../utils/urlHelper';
+
+export { normalizeAudioUrl };
 
 interface AudioState {
   activeRecord: AudioGuide | null;
@@ -134,7 +137,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         
         if (isCancelled) return;
 
-        let sourceUrl = activeRecord.audioUrl;
+        let sourceUrl = activeRecord.audioUrl ? normalizeAudioUrl(activeRecord.audioUrl) : '';
 
         if (offlineBlob) {
           // Create a new Blob URL for the offline file
@@ -146,6 +149,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (!sourceUrl) {
             setError("Audio URL is missing");
             setIsPlaying(false);
+            setIsBuffering(false);
             return;
           }
 
@@ -155,7 +159,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           // Store the NEW URL in the ref so it can be revoked later
           objectUrlRef.current = newObjectUrl;
           
-          audioRef.current.src = sourceUrl || '';
+          audioRef.current.src = sourceUrl;
+          audioRef.current.preload = 'metadata';
           audioRef.current.load();
           
           try {
@@ -167,14 +172,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               console.error("Playback error:", playError);
               setError("Failed to play audio");
               setIsPlaying(false);
+              setIsBuffering(false);
             }
           }
         }
       } catch (err) {
         console.error("Audio setup error:", err);
         setError("Failed to initialize audio");
+        setIsPlaying(false);
+        setIsBuffering(false);
       } finally {
-        if (!isCancelled) setIsBuffering(false);
+        if (isCancelled) setIsBuffering(false);
       }
     };
 
@@ -195,8 +203,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         audioRef.current?.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current?.play().catch(console.error);
-        setIsPlaying(true);
+        setError(null);
+        setIsBuffering(true);
+        if (audioRef.current) {
+          if (audioRef.current.error || !audioRef.current.src) {
+            audioRef.current.load();
+          }
+          audioRef.current.play().catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.error("Error starting playback:", err);
+              setError("Failed to play audio");
+              setIsPlaying(false);
+              setIsBuffering(false);
+            }
+          });
+          setIsPlaying(true);
+        }
       }
       return;
     }
@@ -213,7 +235,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const resumeAudio = useCallback(() => {
     if (audioRef.current && activeRecord) {
-      audioRef.current.play().catch(console.error);
+      setError(null);
+      setIsBuffering(true);
+      if (audioRef.current.error || !audioRef.current.src) {
+        audioRef.current.load();
+      }
+      audioRef.current.play().catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error("Error resuming playback:", err);
+          setError("Failed to play audio");
+          setIsPlaying(false);
+          setIsBuffering(false);
+        }
+      });
       setIsPlaying(true);
     }
   }, [activeRecord]);
@@ -314,10 +348,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
    */
   const downloadAudio = useCallback(async (guide: AudioGuide) => {
     if (!guide.audioUrl) return;
+    const targetUrl = normalizeAudioUrl(guide.audioUrl);
     const guideId = String(guide.id);
 
     try {
-      const response = await fetch(guide.audioUrl);
+      const response = await fetch(targetUrl);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const contentLength = response.headers.get('content-length');
@@ -471,6 +506,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const handleEnded = () => {
       setIsPlaying(false);
+      setIsBuffering(false);
       setProgress(0);
       setCurrentTime(0);
       // Auto-play next
@@ -481,6 +517,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => setIsBuffering(false);
+    const handlePlaying = () => {
+      setIsBuffering(false);
+      setIsPlaying(true);
+    };
 
     const handleStalled = () => {
       if (
@@ -490,9 +530,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         audio.src === '' || 
         audio.src === window.location.href
       ) {
+        setIsBuffering(false);
         return;
       }
-      console.warn('Audio stream stalled. Network connectivity issue or stream cut off.');
+      console.warn('Audio stream stalled:', audio.src, 'Network connectivity issue or stream cut off.');
       setError("Audio stream stalled");
       setNotification({
         message: "တရားတော် အသံဖိုင်ရယူ၍ မရနိုင်ပါ။ လိုင်းစစ်ဆေးပါ",
@@ -512,6 +553,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         audio.src === window.location.href || 
         audio.error?.code === 1
       ) {
+        setIsBuffering(false);
         return;
       }
 
@@ -520,13 +562,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         switch (audio.error.code) {
           case 1:
             // Aborted loading by user action or closing player
+            setIsBuffering(false);
             return;
           case 2: message = "Network error loading audio"; break;
           case 3: message = "Audio decoding failed"; break;
           case 4: message = "Audio source unavailable or URL format invalid"; break;
         }
       }
-      console.warn('Audio playback error:', audio.error, 'The audio URL may be invalid, missing, or blocked by CORS settings.');
+      console.warn('Audio playback error:', audio.error, 'URL:', audio.src, 'The audio URL may be invalid, missing, or blocked by CORS settings.');
       setError(message);
       setNotification({
         message: "တရားတော် အသံဖိုင်ရယူ၍ မရနိုင်ပါ။ လိုင်းစစ်ဆေးပါ",
@@ -541,6 +584,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('waiting', handleWaiting);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('playing', handlePlaying);
     audio.addEventListener('stalled', handleStalled);
     audio.addEventListener('error', handleError);
 
@@ -550,6 +594,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('waiting', handleWaiting);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('playing', handlePlaying);
       audio.removeEventListener('stalled', handleStalled);
       audio.removeEventListener('error', handleError);
       audio.pause();

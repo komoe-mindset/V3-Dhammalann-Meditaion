@@ -48,13 +48,17 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Check if request is an MP3 audio file or from mp3.dhammalann.org
-  const isAudioDomain = url.hostname === 'mp3.dhammalann.org';
-  const isAudioExtension = url.pathname.match(/\.(mp3|wav|m4a|ogg|aac)$/i);
-  const isAudioApi = url.pathname.includes('/api/files/');
-  const isAudioHeader = event.request.headers.get('Accept')?.includes('audio/');
+  // Check if the request is an MP3 file, from mp3.dhammalann.org, or contains a Range header
+  const isMp3 = url.pathname.toLowerCase().endsWith('.mp3');
+  const isAudioDomain = url.hostname.includes('mp3.dhammalann.org');
+  const hasRangeHeader = event.request.headers.has('range');
 
-  const isAudio = isAudioDomain || isAudioExtension || isAudioApi || isAudioHeader;
+  if (isMp3 || isAudioDomain || hasRangeHeader) {
+    // BYPASS Service Worker completely for HTML5 audio range requests and streaming.
+    // Returning immediately without calling event.respondWith() lets Chrome's native HTML5 audio engine
+    // handle HTTP 206 Partial Content range requests directly with zero SW caching conflicts.
+    return;
+  }
 
   // Skip Service Worker for Vite internal paths and dev modules
   const isViteDev = url.pathname.startsWith('/@') || 
@@ -63,10 +67,7 @@ self.addEventListener('fetch', (event) => {
                     url.search.includes('import') ||
                     url.search.includes('t=');
 
-  if (isAudio) {
-    // Strategy: Cache First for MP3 audio files with range request support & 250MB eviction
-    event.respondWith(handleAudioCacheFirst(event.request));
-  } else if (!url.pathname.startsWith('/api/') && !isViteDev && url.origin === self.location.origin) {
+  if (!url.pathname.startsWith('/api/') && !isViteDev && url.origin === self.location.origin) {
     // Strategy: Stale-While-Revalidate for UI static assets and JS/CSS bundles
     event.respondWith(staleWhileRevalidate(event.request));
   }

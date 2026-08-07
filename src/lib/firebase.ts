@@ -3,9 +3,9 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/
 import { getFirestore, setLogLevel, enableIndexedDbPersistence } from 'firebase/firestore';
 import defaultConfig from '../../firebase-applet-config.json';
 
-// Silence non-fatal Firestore connection attempt logs when offline or on poor network
+// Silence Firestore internal log messages when offline or on poor network
 try {
-  setLogLevel('error');
+  setLogLevel('silent');
 } catch (e) {
   // Ignore log level setup errors
 }

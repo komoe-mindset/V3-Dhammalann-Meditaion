@@ -23,6 +23,7 @@ const InstallModal = lazy(() => import('./components/InstallModal'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const ActionModal = lazy(() => import('./components/ActionModal'));
 const ShareModal = lazy(() => import('./components/ShareModal'));
+const TranscriptModal = lazy(() => import('./components/TranscriptModal'));
 
 /**
  * AUDIO LINK SYSTEM
